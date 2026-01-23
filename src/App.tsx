@@ -18,24 +18,27 @@ const GOOGLE_FORM_CONFIG = {
 const IDLE_LOOP_END = 5.0;
 
 // --- 獎項資料設定 ---
-// 1. 【預先匹配名單】
-const PRE_MATCHED_PRIZES: Record<string, string> = {
-  "0912345678": "頭獎：現金 10 萬元",
-  "0987654321": "二獎：iPhone 15 Pro Max",
-  "0911222333": "三獎：Dyson 全套組",
-  "0921717796": "特別獎：祥獅獻瑞大紅包", // 您的測試號碼
-};
+// 1. 【預先匹配名單】 (已改為使用 Vercel Postgres 資料庫，請至 /api/seed 初始化)
+// const PRE_MATCHED_PRIZES = { ... }; // 移除硬編碼
 
 // 2. 【候補隨機池】
 const FALLBACK_PRIZE_POOL = [
   { name: '參加獎：刮刮樂一張 (現金 200 元)', weight: 100 },
 ];
 
-const assignPrize = (phoneNumber: string) => {
-  const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
-  if (PRE_MATCHED_PRIZES[phoneNumber]) return PRE_MATCHED_PRIZES[phoneNumber];
-  if (PRE_MATCHED_PRIZES[cleanPhone]) return PRE_MATCHED_PRIZES[cleanPhone];
+// Async function to check prize from API
+const assignPrize = async (phoneNumber: string) => {
+  try {
+    const res = await fetch(`/api/winner?phone=${encodeURIComponent(phoneNumber)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.prize) return data.prize;
+    }
+  } catch (e) {
+    console.error("API Error, falling back to random:", e);
+  }
 
+  // Fallback if no specific prize found in DB
   const totalWeight = FALLBACK_PRIZE_POOL.reduce((sum, item) => sum + item.weight, 0);
   let random = Math.random() * totalWeight;
   for (const prize of FALLBACK_PRIZE_POOL) {
@@ -106,8 +109,8 @@ export default function App() {
     setLoading(true);
 
     try {
-      // 1. 分配獎項 (查表)
-      const assignedPrize = assignPrize(formData.phone);
+      // 1. 分配獎項 (查表 - 非同步)
+      const assignedPrize = await assignPrize(formData.phone);
       setPrize(assignedPrize);
 
       // 2. 傳送資料給 Google Form (背景執行，不等待結果以免卡住)
