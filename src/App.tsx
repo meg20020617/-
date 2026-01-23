@@ -259,7 +259,7 @@ export default function App() {
       <video
         ref={videoRef}
         className="fixed top-0 left-0 w-full h-full object-cover z-0"
-        src="直式抽獎封面動態.mp4"
+        src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/%E7%9B%B4%E5%BC%8F%E6%8A%BD%E7%8D%8E%E5%B0%81%E9%9D%A2%E5%8B%95%E6%85%8B.mp4"
         muted={false}
         playsInline
         autoPlay
@@ -277,7 +277,7 @@ export default function App() {
             <div className="text-center mb-8">
               {/* Logo Updated */}
               <img
-                src="a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png"
+                src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png"
                 alt="2026 祥獅獻瑞"
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
