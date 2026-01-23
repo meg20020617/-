@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2e1065;
+  --color-secondary: #881337;
+  --color-accent: #FCD34D;
+
+  --font-serif: "Noto Serif TC", "Songti TC", serif;
+}
+
+@utility bg-festival {
+  background-image: linear-gradient(180deg, #2e1065 0%, #4c0519 100%);
+}
+
+@layer base {
+  body {
+    @apply font-serif bg-festival min-h-screen text-white overflow-x-hidden;
+  }
+}
