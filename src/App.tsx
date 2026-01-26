@@ -156,15 +156,23 @@ export default function App() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // Init Draw
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+
+      // Scale context to ensure drawing operations use logical pixels but render at high DPI
+      ctx.scale(dpr, dpr);
+
+      // Init Draw using logical dimensions (window.innerWidth/Height)
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#ce1126';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight); // logical size
 
       ctx.fillStyle = '#fcd34d';
       for (let i = 0; i < 80; i++) {
         ctx.beginPath();
-        ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, Math.random() * 4, 0, Math.PI * 2);
+        // Use logical dimensions
+        ctx.arc(Math.random() * window.innerWidth, Math.random() * window.innerHeight, Math.random() * 4, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -173,22 +181,23 @@ export default function App() {
 
       const finishDraw = () => {
         const aspect = img.width / img.height;
-        let drawWidth = Math.min(canvas.width * 0.6, 400);
+        // Logical width
+        let drawWidth = Math.min(window.innerWidth * 0.6, 400);
         let drawHeight = drawWidth / aspect;
-        const x = (canvas.width - drawWidth) / 2;
-        const y = (canvas.height - drawHeight) / 2;
+        const x = (window.innerWidth - drawWidth) / 2;
+        const y = (window.innerHeight - drawHeight) / 2;
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
         // Dynamic Font Size for Mobile - Larger and Wider
-        const fontSize = Math.min(canvas.width * 0.08, 42);
+        const fontSize = Math.min(window.innerWidth * 0.08, 42);
         ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
-        // Add letter spacing
+        // Add letter spacing (Increased to 20px)
         if ('letterSpacing' in ctx) {
-          (ctx as any).letterSpacing = "10px";
+          (ctx as any).letterSpacing = "20px";
         }
-        ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + (fontSize * 2));
+        ctx.fillText("請刮出你的中獎結果", window.innerWidth / 2, y + drawHeight + (fontSize * 2));
         ctx.globalCompositeOperation = 'destination-out';
 
         setIsCanvasReady(true);
@@ -223,6 +232,18 @@ export default function App() {
         if (!isWinningTriggered && moveCount > 10) {
           setIsWinningTriggered(true);
         }
+      };
+
+      const getTransparency = () => {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        let transparentPixels = 0;
+        for (let i = 3; i < pixels.length; i += 4) {
+          if (pixels[i] === 0) {
+            transparentPixels++;
+          }
+        }
+        return transparentPixels / (pixels.length / 4);
       };
 
       const start = (e: any) => { isDrawing = true; const p = getPos(e); scratch(p.x, p.y); };
