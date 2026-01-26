@@ -89,28 +89,22 @@ export default async function handler(request: Request) {
             let rawPrize = row[2] || "";
             let extraVoucher = "";
 
-            // Check for attached voucher (Cols 6 & 7)
             const brand = row[6];
             const amount = row[7];
 
             if (brand && brand !== '無' && brand !== '-' && brand.trim().length > 0) {
                 const amtStr = (amount && amount !== '-') ? amount.replace(/['"]/g, '').trim() + '元' : '';
-                // Construct voucher string e.g. "遠東百貨 2,000元 禮券"
                 extraVoucher = `${brand} ${amtStr} 禮券`.trim();
             }
 
-            // Decide Final Prize String for this Row
             let prizeForThisRow = rawPrize;
 
-            // Case A: Main prize IS the voucher (e.g. "禮券")
             if (rawPrize === '禮券' || rawPrize.includes('禮券')) {
                 if (extraVoucher) prizeForThisRow = extraVoucher;
-            }
-            // Case B: Main prize is a Product (e.g. "Perfume")
-            else {
-                // If there is ALSO a voucher, combine them
+            } else {
                 if (extraVoucher) {
-                    prizeForThisRow = `${rawPrize} ✚ ${extraVoucher}`;
+                    // NEWLINE SEPARATOR for App.tsx split logic
+                    prizeForThisRow = `${rawPrize}\n+${extraVoucher}`;
                 }
             }
 
@@ -122,11 +116,9 @@ export default async function handler(request: Request) {
         let finalPrize = null;
         if (matchedPrizes.length > 0) {
             const uniquePrizes = [...new Set(matchedPrizes)];
-            // Use ' ✚ ' separator
-            finalPrize = uniquePrizes.join(' ✚ ');
+            // NEWLINE SEPARATOR for Multiples
+            finalPrize = uniquePrizes.join('\n+');
         } else {
-            // NO MATCH
-            // (Debug logic removed as per user request for simplicity)
             finalPrize = null;
         }
 
@@ -139,7 +131,6 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        // Return 500 error effectively
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }

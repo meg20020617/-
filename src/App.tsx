@@ -37,7 +37,7 @@ export default function App() {
   const [prize, setPrize] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isWinningTriggered, setIsWinningTriggered] = useState(false); // New state just for fireworks
+  const [isWinningTriggered, setIsWinningTriggered] = useState(false); // Only used for fireworks trigger
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // Celebration Fireworks (Triggered once)
+  // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
       const duration = 5000;
@@ -206,15 +206,16 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
+        // Trigger Fireworks at 35% but DO NOT fade out layer
         if (!isWinningTriggered && moveCount > 5) {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           let transparent = 0;
           const sampleRate = 32;
+          // Fast sampling
           for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
             if (imageData.data[i] === 0) transparent++;
           }
-          // Trigger Fireworks at 30%
-          if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.3) {
+          if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.35) {
             setIsWinningTriggered(true);
           }
         }
@@ -301,7 +302,7 @@ export default function App() {
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
                 <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-1">
                   {prize.split('\n').map((line, idx) => (
-                    <span key={idx}>{line}</span>
+                    <span key={idx} className="block">{line}</span>
                   ))}
                 </div>
               </div>
@@ -328,7 +329,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Global Styles */}
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
