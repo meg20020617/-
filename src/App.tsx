@@ -37,7 +37,7 @@ export default function App() {
   const [prize, setPrize] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isScratched, setIsScratched] = useState(false);
+  const [isWinningTriggered, setIsWinningTriggered] = useState(false); // New state just for fireworks
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -51,9 +51,9 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // Celebration Fireworks
+  // Celebration Fireworks (Triggered once)
   useEffect(() => {
-    if (view === 'result' && isScratched) {
+    if (view === 'result' && isWinningTriggered) {
       const duration = 5000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
@@ -68,7 +68,7 @@ export default function App() {
       }, 250);
       return () => clearInterval(interval);
     }
-  }, [view, isScratched]);
+  }, [view, isWinningTriggered]);
 
   if (isMaintenance) {
     return (
@@ -206,15 +206,16 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
-        if (!isScratched && moveCount > 5) {
+        if (!isWinningTriggered && moveCount > 5) {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           let transparent = 0;
           const sampleRate = 32;
           for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
             if (imageData.data[i] === 0) transparent++;
           }
-          if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.35) {
-            setIsScratched(true);
+          // Trigger Fireworks at 30%
+          if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.3) {
+            setIsWinningTriggered(true);
           }
         }
       };
@@ -286,7 +287,6 @@ export default function App() {
       {/* UNIFIED RESULT VIEW (Only visible when view === 'result') */}
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
-          {/* THE FINAL CARD (Always rendered underneath) */}
           <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
 
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
@@ -311,7 +311,7 @@ export default function App() {
                 <p className="text-yellow-500/80 text-sm">{formData.company}</p>
               </div>
 
-              {/* Button Removed per request */}
+              {/* No Button */}
 
               <div className="w-full bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-200 text-sm font-bold">⚠️ 請務必保留此截圖</p>
@@ -320,16 +320,15 @@ export default function App() {
             </div>
           </div>
 
-          {/* SCRATCH OVERLAY */}
+          {/* SCRATCH OVERLAY (Does NOT fade out automatically anymore) */}
           <canvas
             ref={canvasRef}
-            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-50 transition-opacity duration-1000 
-                  ${isScratched ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                  bg-[#ce1126]`}
+            className="absolute inset-0 w-full h-full cursor-pointer touch-none z-50 bg-[#ce1126]"
           />
         </div>
       )}
 
+      {/* Global Styles */}
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
