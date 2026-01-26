@@ -55,7 +55,6 @@ export default function App() {
   // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
-      // High Z-Index to show ABOVE the canvas
       const defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 10000 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
@@ -65,7 +64,6 @@ export default function App() {
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
 
-      // Stop after 5 seconds
       setTimeout(() => clearInterval(interval), 5000);
       return () => clearInterval(interval);
     }
@@ -209,9 +207,20 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
-        // Trigger Fireworks early (when scratching starts)
+        // Check Transparency: Trigger Fireworks when 30% revealed
         if (!isWinningTriggered && moveCount > 5) {
-          setIsWinningTriggered(true);
+          // Optimization: Don't check every move, check every 10 moves
+          if (moveCount % 10 === 0) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let transparent = 0;
+            const sampleRate = 64; // Faster sampling
+            for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
+              if (imageData.data[i] === 0) transparent++;
+            }
+            if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.30) {
+              setIsWinningTriggered(true);
+            }
+          }
         }
       };
 
@@ -279,39 +288,36 @@ export default function App() {
         </div>
       )}
 
-      {/* UNIFIED RESULT VIEW (Only visible when view === 'result') */}
+      {/* RESULT VIEW - FULL SCREEN BLACK COVER */}
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
-          <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden flex flex-col items-center justify-center min-h-[60vh]">
 
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
+          {/* Full Screen Black Background - Covering Video */}
+          <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-40">
 
-            {/* Cleanup: Removed Sparkles Icon */}
+            {/* Content Container - No borders, no max-width constraints */}
+            <div className="relative z-50 w-full px-6 flex flex-col items-center">
 
-            {/* Huge Title */}
-            <div className="relative z-10 w-full">
-              <h2 className="text-4xl md:text-5xl font-extrabold text-yellow-400 mb-8 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-10 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 恭喜中獎
               </h2>
 
-              {/* Prize Box - Simplified */}
-              <div className="w-full bg-gradient-to-br from-red-900/60 to-red-950/60 p-6 rounded-2xl border border-red-500/30 my-4">
-                {/* Cleanup: Removed English "CHINESE NEW YEAR" text */}
-
-                <div className="text-3xl md:text-5xl font-black text-white w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-2">
+              {/* Prize Text - Huge */}
+              <div className="w-full my-6">
+                <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
                   {prize.split('|||').map((line, idx) => (
                     <span key={idx} className="block">{line}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2 mb-10 mt-6">
-                <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
-                <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+              <div className="space-y-3 mb-12 mt-8">
+                <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
+                <p className="text-yellow-500/80 text-xl">{formData.company}</p>
               </div>
 
-              <div className="w-full bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
-                <p className="text-white font-bold text-base leading-relaxed tracking-wide">
+              <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+                <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
                   請截圖此畫面<br />
                   活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
                 </p>
@@ -319,10 +325,10 @@ export default function App() {
             </div>
           </div>
 
-          {/* SCRATCH OVERLAY */}
+          {/* SCRATCH OVERLAY - FULL SCREEN */}
           <canvas
             ref={canvasRef}
-            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
+            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
                    ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
           />
         </div>
