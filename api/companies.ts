@@ -1,11 +1,30 @@
-import * as XLSX from 'xlsx';
-
-// Switch to Node.js runtime for xlsx support
 export const config = {
     runtime: 'nodejs',
 };
 
-const DOCX_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8E(%E6%9C%AAFinal).xlsx";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+
+// Helper: Parse a single CSV line handling quotes
+function parseCSVLine(text: string) {
+    const res = [];
+    let entry = [];
+    let inQuote = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"') {
+            inQuote = !inQuote;
+        } else if (char === ',' && !inQuote) {
+            res.push(entry.join('').trim());
+            entry = [];
+        } else {
+            entry.push(char);
+        }
+    }
+    // Last entry
+    res.push(entry.join('').trim());
+    return res;
+}
 
 export default async function handler(request: Request) {
     if (request.method !== 'GET') {
@@ -13,38 +32,26 @@ export default async function handler(request: Request) {
     }
 
     try {
-        const response = await fetch(DOCX_URL);
+        const response = await fetch(DATA_URL);
         if (!response.ok) {
             throw new Error('Failed to fetch prize list');
         }
-        const arrayBuffer = await response.arrayBuffer();
+        const text = await response.text();
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
 
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
         const companies = new Set<string>();
 
-        // Row 1 onwards
-        // Last Column: " Jane Lee 李桂甄 SSC"
-        // Need to extract "SSC"
+        // Skip Header (Row 0)
+        for (let i = 1; i < lines.length; i++) {
+            const row = parseCSVLine(lines[i]);
+            // Company is Index 9 based on analysis
+            const comp = row[9];
 
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const userInfo = row[row.length - 1]; // Last col
-
-            if (typeof userInfo === 'string') {
-                const parts = userInfo.trim().split(/\s+/);
-                const last = parts[parts.length - 1]; // Heuristic: Company is last word
-
-                // Refined Heuristic:
-                // Check if last part is NOT Chinese (company usually English abbr like SSC, PMX)
-                // If contains Chinese, maybe it's part of name? 
-                // "李桂甄" -> Chinese
-                // "SSC" -> Eng
-                if (last && !/[\u4e00-\u9fa5]/.test(last) && last.length > 1) {
-                    companies.add(last);
+            if (comp && comp !== '無' && comp.length > 1) {
+                // Clean up quotes/spaces
+                const cleanComp = comp.replace(/['"]/g, '').trim();
+                if (cleanComp) {
+                    companies.add(cleanComp);
                 }
             }
         }

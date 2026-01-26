@@ -1,11 +1,30 @@
-import * as XLSX from 'xlsx';
-
-// Switch to Node.js runtime for xlsx support
 export const config = {
     runtime: 'nodejs',
 };
 
-const DOCX_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8E(%E6%9C%AAFinal).xlsx";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+
+// Helper: Parse a single CSV line handling quotes
+function parseCSVLine(text: string) {
+    const res = [];
+    let entry = [];
+    let inQuote = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"') {
+            inQuote = !inQuote;
+        } else if (char === ',' && !inQuote) {
+            res.push(entry.join('').trim());
+            entry = [];
+        } else {
+            entry.push(char);
+        }
+    }
+    // Last entry
+    res.push(entry.join('').trim());
+    return res;
+}
 
 export default async function handler(request: Request) {
     if (request.method !== 'GET') {
@@ -24,79 +43,89 @@ export default async function handler(request: Request) {
     }
 
     try {
-        // 1. Fetch XLSX from Blob
-        const response = await fetch(DOCX_URL);
+        const response = await fetch(DATA_URL);
         if (!response.ok) {
             throw new Error('Failed to fetch prize list');
         }
-        const arrayBuffer = await response.arrayBuffer();
-
-        // 2. Parse XLSX
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0]; // Assuming first sheet
-        const sheet = workbook.Sheets[sheetName];
-
-        // Convert to array of arrays
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
-
-        // 3. Search Logic
+        const text = await response.text();
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
 
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
         let foundPrize = null;
 
-        // Start from row 1 (skip header)
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (!row || row.length < 3) continue;
+        // Skip Header (Row 0)
+        for (let i = 1; i < lines.length; i++) {
+            const row = parseCSVLine(lines[i]);
+            if (row.length < 9) continue;
 
-            let prizeName = row[2]; // Col 2: Prize (Index 2)
-            const userInfo = row[row.length - 1]; // Last Col: Info
+            // Mapping based on debug analysis:
+            // Index 2: Prize Name
+            // Index 8: Name
+            // Index 9: Company
 
-            if (typeof userInfo !== 'string') continue;
+            const rowName = row[8];
+            const rowCompany = row[9];
+            let prizeName = row[2];
 
-            const userInfoLower = userInfo.toLowerCase();
-            const searchNameLower = searchName.toLowerCase();
+            if (!rowName) continue;
 
-            // Check Chinese Name Match (Case insensitive just in case)
-            if (userInfoLower.includes(searchNameLower)) {
+            const nameMatch = rowName.trim() === searchName;
 
+            if (nameMatch) {
                 // Company Check
-                if (searchCompany) {
-                    if (!userInfoLower.includes(searchCompany)) {
+                if (searchCompany && rowCompany) {
+                    const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
+                    const searchCompClean = searchCompany.replace(/\s/g, '');
+
+                    // Relaxed match: includes
+                    if (!rowCompClean.includes(searchCompClean) && !searchCompClean.includes(rowCompClean)) {
+                        // Strict validation requested, so skip if mismatch
                         continue;
                     }
                 }
 
-                // Construct Better Prize Name for Vouchers
-                // Row structure based on debug:
-                // Col 1: Type ("禮品" or "禮券") - Index 1
-                // Col 2: Item ("LG..." or "禮券") - Index 2
-                // Col 7: Brand ("新光三越") - Index 7
-                // Col 8: Amount (3000) - Index 8
+                // Construct Prize Name if "禮品" or "禮券"
+                // Col 1: Type
+                // Col 6: Voucher Brand (Index 6? Check debug)
+                // Wait, debug Row 4: `"无"`, index 6? 
+                // Row 4: 0,1,2,3,4,5,6,7,8,9
+                // 4, 禮品, tokuyo..., "3,980", 1, "3,980", 無(Index 6), -(Index 7), Name(8), Comp(9)
 
-                const type = row[1];
-                const brand = row[7];
-                const amount = row[8];
+                // Let's re-verify indices from debug output for the "Voucher" row (Row 1 from previous debug?)
+                // Previous XLSX debug said Row 269: [..., "新光三越"(7), 3000(8) ... ]
+                // CSV might be slightly different?
+                // CSV Row 1 (from debug_csv output): `1,禮品,LG...,...,...,...,無,-,李桂甄,SSC`
+                // 0: 1
+                // 1: 禮品
+                // 2: LG...
+                // 6: 無 (Brand?)
+                // 7: - (Amount?)
+                // 8: Name
+                // 9: Comp
 
-                // If it is a generic "Voucher" entry, construct a better name
-                if (type === '禮券' || prizeName === '禮券') {
-                    // Construct: "新光三越 3000元 禮券"
+                // Let's rely on `row[2]` (Item Name) primarily.
+                // If row[2] is just "禮券", we might need the other cols.
+                // Assuming "新光三越" is at index 6 or 7?
+                // Let's try to grab them if needed.
+
+                if (prizeName === '禮券' || row[1] === '禮券') {
+                    const brand = row[6]; // Guessing based on "無" position
+                    const amount = row[7]; // Guessing based on "-" position
+
+                    // If it looks like a brand...
                     let parts = [];
-                    if (brand && brand !== '無') parts.push(brand);
-                    if (amount) parts.push(`${amount}元`);
-                    parts.push('禮券');
+                    if (brand && brand !== '無' && brand !== '-') parts.push(brand);
+                    // Amount might be quoted " 3,000 "
+                    if (amount && amount !== '-') parts.push(amount.replace(/['"]/g, '').trim() + '元');
 
-                    if (parts.length > 1) {
-                        prizeName = parts.join(' ');
-                    }
+                    parts.push(prizeName);
+                    if (parts.length > 1) prizeName = parts.join(' ');
                 }
 
-                if (prizeName) {
-                    foundPrize = prizeName;
-                    break;
-                }
+                foundPrize = prizeName.replace(/['"]/g, '').trim(); // Remove clean quotes
+                break;
             }
         }
 
