@@ -234,17 +234,7 @@ export default function App() {
         }
       };
 
-      const getTransparency = () => {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        let transparentPixels = 0;
-        for (let i = 3; i < pixels.length; i += 4) {
-          if (pixels[i] === 0) {
-            transparentPixels++;
-          }
-        }
-        return transparentPixels / (pixels.length / 4);
-      };
+
 
       const start = (e: any) => { isDrawing = true; const p = getPos(e); scratch(p.x, p.y); };
       const move = (e: any) => { if (isDrawing) { e.preventDefault(); const p = getPos(e); scratch(p.x, p.y); } };
@@ -336,7 +326,7 @@ export default function App() {
                 <p className="text-yellow-500/80 text-xl">{formData.company}</p>
               </div>
 
-              <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className="absolute bottom-12 w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
                 <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
                   請截圖此畫面<br />
                   活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
