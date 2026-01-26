@@ -312,7 +312,7 @@ export default function App() {
       {
         view === 'result' && (
           // Fixed Wrapper to ensure it covers EVERYTHING
-          <div className="fixed inset-0 z-40 flex flex-col bg-black animate-fade-in-up">
+          <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
 
             {/* Flex Container for Content */}
             <div className="relative w-full h-full flex flex-col z-10">
