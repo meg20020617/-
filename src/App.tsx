@@ -4,7 +4,8 @@ import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
 
-const COMPANIES = [
+// Initial fallback, will be overwritten by API
+const FALLBACK_COMPANIES = [
   "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
   "Performics", "MSL", "PMX", "Saatchi & Saatchi",
   "ReSources", "Publicis", "Human Resource", "Finance",
@@ -38,12 +39,25 @@ const assignPrize = async (name: string, company: string) => {
 
 export default function App() {
   const [view, setView] = useState('login'); // 'login', 'playing_action', 'result'
+  const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
   const [formData, setFormData] = useState({
     name: '',
     company: ''
   });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
+
+  // Fetch companies on mount
+  useEffect(() => {
+    fetch('/api/companies')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.companies && data.companies.length > 0) {
+          setCompanies(data.companies);
+        }
+      })
+      .catch(err => console.error("Failed to fetch companies:", err));
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -176,7 +190,7 @@ export default function App() {
                     onChange={handleInputChange}
                   >
                     <option value="" disabled className="text-gray-500">請選擇公司</option>
-                    {COMPANIES.map(c => (
+                    {companies.map(c => (
                       <option key={c} value={c} className="text-black">{c}</option>
                     ))}
                   </select>
