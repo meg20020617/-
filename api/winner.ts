@@ -21,7 +21,6 @@ function parseCSVLine(text: string) {
             entry.push(char);
         }
     }
-    // Last entry
     res.push(entry.join('').trim());
     return res;
 }
@@ -48,48 +47,49 @@ export default async function handler(request: Request) {
             throw new Error('Failed to fetch prize list');
         }
 
-        // FORCE UTF-8 DECODING
-        const arrayBuffer = await response.arrayBuffer();
-        const decoder = new TextDecoder('utf-8');
-        const text = decoder.decode(arrayBuffer);
-        const cleanText = text.replace(/^\uFEFF/, ''); // Remove BOM
-
-        const lines = cleanText.split('\n').filter(l => l.trim().length > 0);
+        // Safety: Try-Catch around decoding
+        let lines: string[] = [];
+        try {
+            const arrayBuffer = await response.arrayBuffer();
+            const decoder = new TextDecoder('utf-8');
+            const text = decoder.decode(arrayBuffer);
+            const cleanText = text.replace(/^\uFEFF/, '');
+            lines = cleanText.split('\n').filter(l => l.trim().length > 0);
+        } catch (decodeErr: any) {
+            throw new Error("Decoding Failed: " + decodeErr.message);
+        }
 
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
-        // Collect ALL matched prizes (Support for multiple rows)
         let matchedPrizes: string[] = [];
 
-        // Skip Header (Row 0)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
             if (row.length < 9) continue;
 
-            const rowName = row[8];
-            const rowCompany = row[9];
+            const rowName = row[8] || "";
+            const rowCompany = row[9] || "";
 
             if (!rowName) continue;
 
-            // Name Match check
             if (rowName === searchName) {
-
-                // Company Check
+                // Company Check Re-enabled (Robust)
                 if (searchCompany && rowCompany) {
                     const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
                     const searchCompClean = searchCompany.replace(/\s/g, '');
 
                     if (!rowCompClean.includes(searchCompClean) && !searchCompClean.includes(rowCompClean)) {
-                        continue; // Mismatch
+                        continue;
                     }
                 }
 
-                // Construct Prize Name
-                let prizeName = row[2];
-                if (prizeName.includes('禮券') || row[1].includes('禮券')) {
-                    const brand = row[6]; // Index 6
-                    const amount = row[7]; // Index 7
+                let prizeName = row[2] || "";
+
+                // Prize Construction
+                if (prizeName.includes('禮券') || (row[1] && row[1].includes('禮券'))) {
+                    const brand = row[6];
+                    const amount = row[7];
 
                     let parts = [];
                     if (brand && brand !== '無' && brand !== '-') parts.push(brand);
@@ -116,20 +116,26 @@ export default async function handler(request: Request) {
             const uniquePrizes = [...new Set(matchedPrizes)];
             finalPrize = uniquePrizes.join(' + ');
         } else {
-            // DEBUG: If failed, return valuable info about what the server received
-            // Use very careful encoding logging
-            const nameHex = searchName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
+            // DEBUG LOGIC (Protected from Crashes)
+            try {
+                const nameHex = searchName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
 
-            // Scan for partial matches
-            let scanResult = "No partial match.";
-            for (let i = 1; i < lines.length && i < 300; i++) {
-                const r = parseCSVLine(lines[i]);
-                if (i === 269) {
-                    scanResult = `Row 269 Name: '${r[8]}' (${r[8].split('').map(c => c.charCodeAt(0).toString(16)).join(' ')}). Company: '${r[9]}'`;
+                let scanResult = "No Row 269 found (Lines < 269).";
+                if (lines.length > 269) {
+                    const r = parseCSVLine(lines[269]);
+                    const rName = r[8] || "(undefined)";
+                    const rComp = r[9] || "(undefined)";
+
+                    // Safe Hex dump
+                    const rNameHex = rName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
+
+                    scanResult = `Row 269 Name: '${rName}' (Hex: ${rNameHex}). Comp: '${rComp}'`;
                 }
-            }
 
-            finalPrize = `DEBUG: Server received '${searchName}' (Hex: ${nameHex}). ${scanResult}`;
+                finalPrize = `DEBUG: Server received '${searchName}' (Hex: ${nameHex}). ${scanResult}`;
+            } catch (debugErr: any) {
+                finalPrize = `DEBUG: Crash in debug logic: ${debugErr.message}`;
+            }
         }
 
         return new Response(JSON.stringify({
@@ -140,10 +146,15 @@ export default async function handler(request: Request) {
             headers: { 'Content-Type': 'application/json' }
         });
 
-    } catch (error) {
-        console.error("Winner Algorithm Error:", error);
-        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-            status: 500,
+    } catch (error: any) {
+        // Return Error as 200 OK with DEBUG prefix so frontend shows it!
+        // This is crucial for user feedback
+        const msg = `DEBUG: CRITICAL_ERROR ${error.message}`;
+        return new Response(JSON.stringify({
+            prize: msg,
+            error: error.message
+        }), {
+            status: 200, // Returning 200 to allow frontend to read the "prize" message
             headers: { 'Content-Type': 'application/json' }
         });
     }
