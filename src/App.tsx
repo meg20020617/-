@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Building2, Phone, Sparkles } from 'lucide-react';
+import { User, Building2, Phone, Sparkles, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
-
-// --- Google Form Configuration ---
-// 確認已正確設定
-const GOOGLE_FORM_CONFIG = {
-  actionURL: "https://docs.google.com/forms/d/e/1FAIpQLScRjcUETsrUZ64-vcAlkXV9z1DH4CFS0uKfXG9GihS7BiEOwA/formResponse",
-  entryName: "entry.2098330522",
-  entryCompany: "entry.1082621236",
-  entryPhone: "entry.766012256"
-};
 
 const IDLE_LOOP_END = 5.0;
 
@@ -81,22 +72,18 @@ export default function App() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const submitToGoogleForm = async (data: typeof formData) => {
-    const { actionURL, entryName, entryCompany, entryPhone } = GOOGLE_FORM_CONFIG;
-    if (!actionURL) return;
-
-    const formBody = new FormData();
-    formBody.append(entryName, data.name);
-    formBody.append(entryCompany, data.company);
-    // Sanitize phone: remove dashes/spaces to prevent validation errors if form expects numbers
-    formBody.append(entryPhone, data.phone.replace(/\D/g, ''));
-
+  const submitSignup = async (data: typeof formData) => {
     try {
-      // mode: "no-cors" 是關鍵，雖然瀏覽器看起來像 failed 或 opaque，但資料有送出
-      await fetch(actionURL, { method: "POST", body: formBody, mode: "no-cors" });
-      console.log("Form submitted to Google (Opaque mode)");
+      await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      console.log("Signup saved to internal DB");
     } catch (error) {
-      console.error("Google Form Error", error);
+      console.error("Signup Save Error", error);
     }
   };
 
@@ -112,8 +99,8 @@ export default function App() {
       const assignedPrize = await assignPrize(formData.name.trim());
       setPrize(assignedPrize);
 
-      // Fire and forget Google Form
-      submitToGoogleForm(formData);
+      // Save data to internal DB
+      submitSignup(formData);
 
       setTimeout(() => {
         setLoading(false);
@@ -154,12 +141,10 @@ export default function App() {
         // Use the Lion Logo Image
         img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
 
-        // Define drawing logic ensuring it covers the area
         const drawLayer = () => {
           ctx.globalCompositeOperation = 'source-over';
 
           // 1. Fill canvas with a solid base color to ensure opacity (Red/Gold theme)
-          // Use Red #ce1126 to match packet
           ctx.fillStyle = '#ce1126';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -191,7 +176,7 @@ export default function App() {
           drawLayer();
         } else {
           img.onload = drawLayer;
-          // Fallback if image fails? Draw text
+          // Fallback if image fails
           img.onerror = () => {
             ctx.fillStyle = '#C0C0C0';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -251,6 +236,14 @@ export default function App() {
       const handleMove = (e: any) => { if (!isDrawing) return; e.preventDefault(); const pos = getPos(e); scratch(pos.x, pos.y); };
       const handleEnd = () => { isDrawing = false; checkTransparency(); };
 
+      // Touch events need passive: false to prevent scrolling while scratching
+      // React synthetic events don't support passive option easily, using refs
+      // But we are attaching to canvasRef inside useEffect, which uses native addEventListener
+      // So passive: false IS respected there.
+
+      // Wait, in previous step I was using canvasRef.addEventListener.
+      // I am keeping that logic.
+
       canvas.addEventListener('mousedown', handleStart);
       canvas.addEventListener('mousemove', handleMove);
       canvas.addEventListener('mouseup', handleEnd);
@@ -290,6 +283,16 @@ export default function App() {
       {view === 'login' && (
         <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 animate-fade-in">
           <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
+
+            {/* Hidden CSV Download Link */}
+            <a
+              href="/api/export_signups"
+              download
+              className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors"
+              title="下載名單"
+            >
+              <Download className="w-4 h-4" />
+            </a>
 
             <div className="text-center mb-8">
               <img
