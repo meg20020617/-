@@ -179,11 +179,15 @@ export default function App() {
         const y = (canvas.height - drawHeight) / 2;
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
-        // Dynamic Font Size for Mobile
-        const fontSize = Math.min(canvas.width * 0.05, 30); // Max 30px, Min adaptive
+        // Dynamic Font Size for Mobile - Larger and Wider
+        const fontSize = Math.min(canvas.width * 0.08, 42);
         ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
+        // Add letter spacing
+        if ('letterSpacing' in ctx) {
+          (ctx as any).letterSpacing = "10px";
+        }
         ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + (fontSize * 2));
         ctx.globalCompositeOperation = 'destination-out';
 
@@ -215,8 +219,8 @@ export default function App() {
         moveCount++;
 
         // AGGRESSIVE FIREWORKS TRIGGER
-        // Fire immediately on 5th move to ensure user sees it
-        if (!isWinningTriggered && moveCount > 5) {
+        // Fire on 10th move
+        if (!isWinningTriggered && moveCount > 10) {
           setIsWinningTriggered(true);
         }
       };
