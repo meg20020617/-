@@ -1,35 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
-// 移除所有 Firebase 引用
-import { User, Building2, Phone, Sparkles, Camera, Trophy, Coins } from 'lucide-react';
+import { User, Building2, Phone, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
-// --- Google Form Configuration (Google 表單設定) ---
+// --- Google Form Configuration ---
+// 確認已正確設定
 const GOOGLE_FORM_CONFIG = {
-  // 您的表單提交網址 (結尾需為 /formResponse)
   actionURL: "https://docs.google.com/forms/d/e/1FAIpQLScRjcUETsrUZ64-vcAlkXV9z1DH4CFS0uKfXG9GihS7BiEOwA/formResponse",
-
-  // 對應欄位 ID (從您提供的連結解析出來的)
-  entryName: "entry.2098330522",    // 姓名
-  entryCompany: "entry.1082621236", // 公司
-  entryPhone: "entry.766012256"     // 電話
+  entryName: "entry.2098330522",
+  entryCompany: "entry.1082621236",
+  entryPhone: "entry.766012256"
 };
 
-// --- Configuration ---
-// 設定：待機循環的結束時間點 (秒)
 const IDLE_LOOP_END = 5.0;
 
-// --- 獎項資料設定 ---
-// 1. 【預先匹配名單】 (已改為使用 Vercel Postgres 資料庫，請至 /api/seed 初始化)
-// const PRE_MATCHED_PRIZES = { ... }; // 移除硬編碼
+const COMPANIES = [
+  "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
+  "Performics", "MSL", "PMX", "Saatchi & Saatchi",
+  "ReSources", "Publicis", "Human Resource", "Finance",
+  "Administration", "Management", "Growth Intelligence",
+  "Collective", "Commercial"
+].sort();
 
-// 2. 【候補隨機池】
 const FALLBACK_PRIZE_POOL = [
   { name: '參加獎：刮刮樂一張 (現金 200 元)', weight: 100 },
 ];
 
-// Async function to check prize from API
-const assignPrize = async (phoneNumber: string) => {
+const assignPrize = async (name: string) => {
   try {
-    const res = await fetch(`/api/winner?phone=${encodeURIComponent(phoneNumber)}`);
+    const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}`);
     if (res.ok) {
       const data = await res.json();
       if (data.prize) return data.prize;
@@ -38,7 +36,6 @@ const assignPrize = async (phoneNumber: string) => {
     console.error("API Error, falling back to random:", e);
   }
 
-  // Fallback if no specific prize found in DB
   const totalWeight = FALLBACK_PRIZE_POOL.reduce((sum, item) => sum + item.weight, 0);
   let random = Math.random() * totalWeight;
   for (const prize of FALLBACK_PRIZE_POOL) {
@@ -49,9 +46,12 @@ const assignPrize = async (phoneNumber: string) => {
 };
 
 export default function App() {
-  // 移除 user 狀態，因為不需要 Firebase 登入了
-  const [view, setView] = useState('login');
-  const [formData, setFormData] = useState({ name: '', company: '', phone: '' });
+  const [view, setView] = useState('login'); // 'login', 'playing_action', 'scratch', 'result'
+  const [formData, setFormData] = useState({
+    name: '',
+    company: '',
+    phone: ''
+  });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
 
@@ -60,7 +60,6 @@ export default function App() {
   const scratchContainerRef = useRef<HTMLDivElement>(null);
   const [isScratched, setIsScratched] = useState(false);
 
-  // --- Video Logic Control ---
   const handleTimeUpdate = () => {
     if (view === 'login' && videoRef.current) {
       if (videoRef.current.currentTime >= IDLE_LOOP_END) {
@@ -72,16 +71,16 @@ export default function App() {
 
   const handleVideoEnded = () => {
     if (view === 'playing_action') {
+      if (videoRef.current) videoRef.current.pause();
       setView('scratch');
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- Google Form Submission Logic ---
   const submitToGoogleForm = async (data: typeof formData) => {
     const { actionURL, entryName, entryCompany, entryPhone } = GOOGLE_FORM_CONFIG;
     if (!actionURL) return;
@@ -89,52 +88,46 @@ export default function App() {
     const formBody = new FormData();
     formBody.append(entryName, data.name);
     formBody.append(entryCompany, data.company);
-    formBody.append(entryPhone, data.phone);
+    // Sanitize phone: remove dashes/spaces to prevent validation errors if form expects numbers
+    formBody.append(entryPhone, data.phone.replace(/\D/g, ''));
 
     try {
-      // 使用 no-cors 模式發送，瀏覽器才不會擋跨域請求 (雖然收不到回應，但 Google 會收到資料)
-      await fetch(actionURL, {
-        method: "POST",
-        body: formBody,
-        mode: "no-cors"
-      });
-      console.log("已傳送至 Google Form");
+      // mode: "no-cors" 是關鍵，雖然瀏覽器看起來像 failed 或 opaque，但資料有送出
+      await fetch(actionURL, { method: "POST", body: formBody, mode: "no-cors" });
+      console.log("Form submitted to Google (Opaque mode)");
     } catch (error) {
-      console.error("Google Form 傳送失敗 (不影響抽獎進行)", error);
+      console.error("Google Form Error", error);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.company) {
+      alert("請選擇公司/部門");
+      return;
+    }
     setLoading(true);
 
     try {
-      // 1. 分配獎項 (查表 - 非同步)
-      const assignedPrize = await assignPrize(formData.phone);
+      const assignedPrize = await assignPrize(formData.name.trim());
       setPrize(assignedPrize);
 
-      // 2. 傳送資料給 Google Form (背景執行，不等待結果以免卡住)
+      // Fire and forget Google Form
       submitToGoogleForm(formData);
 
-      // 3. 模擬短暫處理時間，然後進入播放階段
       setTimeout(() => {
         setLoading(false);
         setView('playing_action');
-
         if (videoRef.current) {
           videoRef.current.muted = false;
-          const playPromise = videoRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => {
-              if (videoRef.current) {
-                videoRef.current.muted = true; // 如果瀏覽器擋聲音，就靜音播放
-                videoRef.current.play();
-              }
-            });
-          }
+          videoRef.current.play().catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current.play();
+            }
+          });
         }
       }, 500);
-
     } catch (error) {
       console.error("Error:", error);
       setLoading(false);
@@ -142,7 +135,6 @@ export default function App() {
     }
   };
 
-  // Canvas Scratch Logic
   useEffect(() => {
     if (view === 'scratch' && canvasRef.current && scratchContainerRef.current) {
       const canvas = canvasRef.current;
@@ -157,38 +149,59 @@ export default function App() {
         canvas.width = rect.width;
         canvas.height = rect.height;
 
-        // Draw Scratch Layer
-        ctx.fillStyle = '#C0C0C0';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Draw Scratch Layer - Image
+        const img = new Image();
+        // Use the Lion Logo Image
+        img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
 
-        // Watermarks
-        ctx.font = '14px "Songti TC", "Noto Serif TC", "PMingLiU", serif';
-        ctx.fillStyle = '#A0A0A0';
-        const words = ['發', '財', '旺', '吉', '$'];
-        for (let i = 0; i < 200; i++) {
-          const w = words[Math.floor(Math.random() * words.length)];
-          ctx.fillText(w, Math.random() * canvas.width, Math.random() * canvas.height);
+        // Define drawing logic ensuring it covers the area
+        const drawLayer = () => {
+          ctx.globalCompositeOperation = 'source-over';
+
+          // 1. Fill canvas with a solid base color to ensure opacity (Red/Gold theme)
+          // Use Red #ce1126 to match packet
+          ctx.fillStyle = '#ce1126';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // 2. Draw pattern/border
+          ctx.strokeStyle = '#fcd34d'; // Gold
+          ctx.lineWidth = 4;
+          ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+          // 3. Draw the Logo centered
+          const aspect = img.width / img.height;
+          let drawWidth = canvas.width * 0.9; // 90% width
+          let drawHeight = drawWidth / aspect;
+
+          if (drawHeight > canvas.height * 0.9) {
+            drawHeight = canvas.height * 0.9;
+            drawWidth = drawHeight * aspect;
+          }
+
+          const x = (canvas.width - drawWidth) / 2;
+          const y = (canvas.height - drawHeight) / 2;
+
+          ctx.drawImage(img, x, y, drawWidth, drawHeight);
+
+          // Reset for scratching
+          ctx.globalCompositeOperation = 'destination-out';
+        };
+
+        if (img.complete) {
+          drawLayer();
+        } else {
+          img.onload = drawLayer;
+          // Fallback if image fails? Draw text
+          img.onerror = () => {
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '24px serif';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText("刮開", canvas.width / 2, canvas.height / 2);
+            ctx.globalCompositeOperation = 'destination-out';
+          };
         }
-
-        // Call to Action Text
-        ctx.save();
-        ctx.font = 'bold 32px "Songti TC", "Noto Serif TC", "PMingLiU", serif';
-        ctx.fillStyle = '#DC2626';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = "white";
-        ctx.shadowBlur = 4;
-        ctx.fillText('刮開中大獎', canvas.width / 2, canvas.height / 2);
-
-        // Circle border
-        ctx.strokeStyle = '#DC2626';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(canvas.width / 2, canvas.height / 2, 110, 40, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.globalCompositeOperation = 'destination-out';
       }, 100);
 
       let isDrawing = false;
@@ -217,17 +230,20 @@ export default function App() {
 
       const checkTransparency = () => {
         if (!ctx) return;
-        if (isScratched || moveCount < 20) return;
+        if (isScratched || moveCount < 5) return;
+
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let transparent = 0;
-        const sampleRate = 16;
+        const sampleRate = 32;
         for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
           if (imageData.data[i] === 0) transparent++;
         }
         const totalSampled = (imageData.data.length / 4) / sampleRate;
-        if ((transparent / totalSampled) * 100 > 50) {
+
+        if ((transparent / totalSampled) * 100 > 40) {
           setIsScratched(true);
-          setTimeout(() => setView('result'), 800);
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          setTimeout(() => setView('result'), 2000);
         }
       };
 
@@ -273,45 +289,48 @@ export default function App() {
       {/* --- 1. Login Page --- */}
       {view === 'login' && (
         <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 animate-fade-in">
-          <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20">
+          <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
+
             <div className="text-center mb-8">
-              {/* Logo Updated */}
               <img
                 src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png"
                 alt="2026 祥獅獻瑞"
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
-              <p className="text-yellow-100/80">尾牙幸運大抽獎</p>
+              <p className="text-yellow-100/80">今日好運攏總來</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-sm text-yellow-200 ml-1">姓名</label>
+                <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
+                  <select
+                    required
+                    name="company"
+                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all appearance-none"
+                    value={formData.company}
+                    onChange={handleInputChange}
+                  >
+                    <option value="" disabled className="text-gray-500">請選擇公司</option>
+                    {COMPANIES.map(c => (
+                      <option key={c} value={c} className="text-black">{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">姓名 (請填寫 Teams 名稱)</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
                   <input
                     required
                     name="name"
                     type="text"
-                    placeholder="請輸入您的姓名"
+                    placeholder="例如: Winnie Lo"
                     className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
                     value={formData.name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                  <input
-                    required
-                    name="company"
-                    type="text"
-                    placeholder="請輸入部門或公司名稱"
-                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
-                    value={formData.company}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -350,37 +369,27 @@ export default function App() {
         <div className="relative z-20 h-full w-full pointer-events-none" />
       )}
 
-      {/* --- 3. Scratch Card Page --- */}
+      {/* --- 3. Scratch Card Page (Overlay) --- */}
       {view === 'scratch' && (
         <div className="relative z-30 h-full w-full flex flex-col items-center justify-center animate-appear">
-          {/* Card Container: Red Background with Gold Double Border */}
-          <div className="relative w-80 h-48 md:w-96 md:h-64 bg-red-700 rounded-lg shadow-[0_0_50px_rgba(255,215,0,0.8)] border-4 border-yellow-400 ring-4 ring-red-800 ring-offset-2 ring-offset-yellow-500 overflow-hidden transform transition-all duration-500">
+          {/* Card Area */}
+          <div className="relative w-72 h-48 md:w-96 md:h-64 bg-transparent ">
 
-            <div className="absolute top-1 left-1 w-8 h-8 border-t-2 border-l-2 border-yellow-300 z-10" />
-            <div className="absolute top-1 right-1 w-8 h-8 border-t-2 border-r-2 border-yellow-300 z-10" />
-            <div className="absolute bottom-1 left-1 w-8 h-8 border-b-2 border-l-2 border-yellow-300 z-10" />
-            <div className="absolute bottom-1 right-1 w-8 h-8 border-b-2 border-r-2 border-yellow-300 z-10" />
-
-            {/* Prize Underneath (Sunburst Background) */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[conic-gradient(at_center,_var(--tw-gradient-stops))] from-red-500 via-red-600 to-red-800 text-center p-4">
-              <div className="absolute inset-0 opacity-20 bg-[repeating-conic-gradient(#fbbf24_0_15deg,transparent_15deg_30deg)] animate-[spin_20s_linear_infinite]" />
-              <div className="relative z-10">
-                <Trophy className="w-12 h-12 text-yellow-300 mb-2 animate-bounce mx-auto" />
-                <h3 className="text-yellow-200 text-lg font-bold">恭喜獲得</h3>
-                <p className="text-2xl md:text-3xl font-black text-white leading-tight mt-1 drop-shadow-md">{prize}</p>
-              </div>
+            {/* Prize Underneath */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+              <h3 className="text-yellow-400 text-lg font-bold drop-shadow-md mb-2">恭喜獲得</h3>
+              <p className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-lg">{prize}</p>
             </div>
 
             {/* Canvas Overlay */}
-            <div ref={scratchContainerRef} className="absolute inset-2 cursor-pointer rounded border border-yellow-600/50 overflow-hidden bg-gray-300">
+            <div ref={scratchContainerRef} className="absolute inset-0 cursor-pointer overflow-hidden rounded-lg">
               <canvas ref={canvasRef} className="w-full h-full touch-none" />
             </div>
           </div>
 
-          <div className="mt-8 flex items-center gap-2 bg-red-900/80 px-6 py-2 rounded-full border border-yellow-500/50 animate-pulse">
-            <Coins className="w-5 h-5 text-yellow-400" />
-            <p className="text-yellow-100 text-lg font-bold">
-              手指用力刮！財神到你家！
+          <div className="mt-24 text-center animate-pulse">
+            <p className="text-yellow-200 text-xl font-bold bg-black/50 px-4 py-1 rounded-full">
+              趕快刮開看看結果！
             </p>
           </div>
         </div>
@@ -408,12 +417,7 @@ export default function App() {
               <p className="text-3xl md:text-4xl font-black text-white break-words">{prize}</p>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-gray-300 text-sm bg-black/40 py-2 px-4 rounded-full mb-6 mx-auto w-fit">
-              <Camera className="w-4 h-4" />
-              <span>請截圖此畫面</span>
-            </div>
-
-            <p className="text-gray-400 text-sm leading-relaxed">
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
               請務必保留此截圖，並於活動結束後，<br />
               向 <span className="text-yellow-500 font-bold">福委會</span> 出示截圖以領取獎項。
             </p>
@@ -421,15 +425,22 @@ export default function App() {
             <div className="mt-8 pt-6 border-t border-gray-700">
               <div className="grid grid-cols-2 gap-4 text-left text-sm text-gray-400">
                 <div>
-                  <span className="block text-gray-600 text-xs">姓名</span>
+                  <span className="block text-gray-600 text-xs">姓名 (Name)</span>
                   <span className="text-gray-200">{formData.name}</span>
                 </div>
                 <div>
-                  <span className="block text-gray-600 text-xs">電話</span>
+                  <span className="block text-gray-600 text-xs">電話 (Phone)</span>
                   <span className="text-gray-200">{formData.phone}</span>
                 </div>
               </div>
             </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-8 text-yellow-500/50 hover:text-yellow-500 text-xs"
+            >
+              返回首頁
+            </button>
           </div>
         </div>
       )}
@@ -438,10 +449,12 @@ export default function App() {
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes appear { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .animate-fade-in { animation: fade-in 1s ease-out; }
         .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
         .animate-appear { animation: appear 0.6s ease-out; }
+        .animate-slide-up { animation: slide-up 0.5s ease-out; }
         
         .font-serif {
           font-family: "Songti TC", "Noto Serif TC", "PMingLiU", "SimSun", serif;
