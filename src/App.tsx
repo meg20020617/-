@@ -55,8 +55,12 @@ export default function App() {
   // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
-      const defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 10000 };
+      // High Z-Index to show ABOVE everything
+      const defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 99999 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      // Visual feedback immediately
+      confetti({ ...defaults, particleCount: 100, origin: { y: 0.6 } });
 
       const interval: any = setInterval(function () {
         const particleCount = 50;
@@ -189,6 +193,22 @@ export default function App() {
 
       let isDrawing = false;
       let moveCount = 0;
+
+      const checkWin = () => {
+        if (!ctx || isWinningTriggered) return;
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let transparent = 0;
+        const sampleRate = 128; // Very Fast sampling
+        for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
+          if (imageData.data[i] === 0) transparent++;
+        }
+        // Trigger 20%
+        if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.20) {
+          setIsWinningTriggered(true);
+        }
+      };
+
       const getPos = (e: MouseEvent | TouchEvent) => {
         let clientX, clientY;
         if ('changedTouches' in e) {
@@ -207,26 +227,15 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
-        // Check Transparency: Trigger Fireworks when 30% revealed
-        if (!isWinningTriggered && moveCount > 5) {
-          // Optimization: Don't check every move, check every 10 moves
-          if (moveCount % 10 === 0) {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let transparent = 0;
-            const sampleRate = 64; // Faster sampling
-            for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
-              if (imageData.data[i] === 0) transparent++;
-            }
-            if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.30) {
-              setIsWinningTriggered(true);
-            }
-          }
+        // Check every 3 moves for responsiveness
+        if (!isWinningTriggered && moveCount % 3 === 0) {
+          checkWin();
         }
       };
 
       const start = (e: any) => { isDrawing = true; const p = getPos(e); scratch(p.x, p.y); };
       const move = (e: any) => { if (isDrawing) { e.preventDefault(); const p = getPos(e); scratch(p.x, p.y); } };
-      const end = () => isDrawing = false;
+      const end = () => { isDrawing = false; checkWin(); }; // Also check on end
 
       canvas.addEventListener('mousedown', start);
       canvas.addEventListener('mousemove', move);
@@ -292,10 +301,8 @@ export default function App() {
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
 
-          {/* Full Screen Black Background - Covering Video */}
           <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-40">
 
-            {/* Content Container - No borders, no max-width constraints */}
             <div className="relative z-50 w-full px-6 flex flex-col items-center">
 
               <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-10 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
