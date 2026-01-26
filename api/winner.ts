@@ -14,6 +14,7 @@ export default async function handler(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
+    const company = searchParams.get('company');
 
     if (!name) {
         return new Response(JSON.stringify({ error: 'Name is required' }), {
@@ -35,43 +36,43 @@ export default async function handler(request: Request) {
         const result = await mammoth.extractRawText({ buffer });
         const text = result.value;
 
-        // 3. Search for the Name
-        // Heuristic: Parse lines and look for the english name
+        // 3. Search for the Name AND Company
         const lines = text.split('\n');
         const searchName = name.trim();
+        const searchCompany = company ? company.trim().toLowerCase() : '';
 
         let foundPrize = null;
 
         for (const line of lines) {
-            // Check if line contains comma (CSV style) or just look for the name
-            if (!line.includes(searchName)) continue; // Case-sensitive better for Chinese? Or loose?
-
-            // If line matches, let's parse it carefully
-            // Expected format: Unit, Brand, Chinese, English, Prize
+            if (!line.includes(searchName)) continue;
 
             const parts = line.split(/,|，|\t/);
             const cols = parts.map(p => p.trim()).filter(Boolean);
 
-            // Heuristic for Chinese Name in Blob Data
-            // We need to find the column that matches input 'searchName' (Chinese)
+            // Check Name Match (Chinese)
+            const nameMatch = cols.some(c => c === searchName || c.replace(/\s/g, '') === searchName.replace(/\s/g, ''));
 
-            // Usually [2] is Chinese based on previous context (Unit, Brand, Chinese...)
-            // Let's iterate cols and see if any matches
+            if (nameMatch) {
+                // Check Company Match (if provided)
+                // Heuristic: Company is usually col 0 (Unit) or 1 (Brand).
+                // We check if ANY other column (up to index 2 or 3) generally matches the searchCompany.
+                // Or simply check if the line contains the company string (fuzzier but safer for "Publicis" vs "Publicis Groupe")
 
-            const matchIndex = cols.findIndex(c => c === searchName || c.replace(/\s/g, '') === searchName.replace(/\s/g, ''));
+                let companyMatch = true;
+                if (searchCompany) {
+                    // Check if 'line' contains the company (case insensitive)
+                    // If dropdown is 'Publicis', it matches 'Publicis Media', 'Publicis Groupe', etc.
+                    if (!line.toLowerCase().includes(searchCompany)) {
+                        companyMatch = false;
+                    }
+                }
 
-            if (matchIndex !== -1) {
-                // If match found, look for Prize.
-                // Prize is likely the last column or index 4.
-
-                // If we found the name at index 2, prize is likely at index 4.
-                // Or simply the last valid column.
-                const potentialPrize = cols[cols.length - 1];
-
-                // Sanity: Prize shouldn't be the name
-                if (potentialPrize !== searchName) {
-                    foundPrize = potentialPrize;
-                    break;
+                if (companyMatch) {
+                    const potentialPrize = cols[cols.length - 1];
+                    if (potentialPrize !== searchName) {
+                        foundPrize = potentialPrize;
+                        break;
+                    }
                 }
             }
         }

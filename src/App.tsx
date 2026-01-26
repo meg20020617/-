@@ -16,9 +16,9 @@ const FALLBACK_PRIZE_POOL = [
   { name: '參加獎：刮刮樂一張 (現金 200 元)', weight: 100 },
 ];
 
-const assignPrize = async (name: string) => {
+const assignPrize = async (name: string, company: string) => {
   try {
-    const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}`);
+    const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}&company=${encodeURIComponent(company)}`);
     if (res.ok) {
       const data = await res.json();
       if (data.prize) return data.prize;
@@ -94,7 +94,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const assignedPrize = await assignPrize(formData.name.trim());
+      const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
       setPrize(assignedPrize);
 
       // Save data to internal DB
