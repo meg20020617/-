@@ -72,69 +72,62 @@ export default async function handler(request: Request) {
 
             if (!rowName) continue;
 
-            // 1. Company Match Check (Priority as requested)
+            // 1. Company Match (Priority)
             if (searchCompany) {
                 const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
                 const searchCompClean = searchCompany.replace(/\s/g, '');
 
-                // If company doesn't match, skip row immediately
                 if (!rowCompClean.includes(searchCompClean) && !searchCompClean.includes(rowCompClean)) {
                     continue;
                 }
             }
 
-            // 2. Name Match Check
+            // 2. Name Match
             if (rowName !== searchName) continue;
 
-            // 3. Prize Construction
-            let prizeName = row[2] || "";
-            if (prizeName.includes('禮券') || (row[1] && row[1].includes('禮券'))) {
-                const brand = row[6];
-                const amount = row[7];
+            // 3. Prize Construction (Hybrid Logic)
+            let rawPrize = row[2] || "";
+            let extraVoucher = "";
 
-                let parts = [];
-                if (brand && brand !== '無' && brand !== '-') parts.push(brand);
-                if (amount && amount !== '-') parts.push(amount.replace(/['"]/g, '').trim() + '元');
+            // Check for attached voucher (Cols 6 & 7)
+            const brand = row[6];
+            const amount = row[7];
 
-                if (!prizeName.includes('禮券')) parts.push(prizeName);
-                else {
-                    if (prizeName === '禮券') parts.push('禮券');
-                    else parts.push(prizeName);
-                }
-
-                const uniqueParts = [...new Set(parts)];
-                if (uniqueParts.length > 0) prizeName = uniqueParts.join(' ');
+            if (brand && brand !== '無' && brand !== '-' && brand.trim().length > 0) {
+                const amtStr = (amount && amount !== '-') ? amount.replace(/['"]/g, '').trim() + '元' : '';
+                // Construct voucher string e.g. "遠東百貨 2,000元 禮券"
+                extraVoucher = `${brand} ${amtStr} 禮券`.trim();
             }
 
-            if (prizeName) {
-                matchedPrizes.push(prizeName.replace(/['"]/g, '').trim());
+            // Decide Final Prize String for this Row
+            let prizeForThisRow = rawPrize;
+
+            // Case A: Main prize IS the voucher (e.g. "禮券")
+            if (rawPrize === '禮券' || rawPrize.includes('禮券')) {
+                if (extraVoucher) prizeForThisRow = extraVoucher;
+            }
+            // Case B: Main prize is a Product (e.g. "Perfume")
+            else {
+                // If there is ALSO a voucher, combine them
+                if (extraVoucher) {
+                    prizeForThisRow = `${rawPrize} ✚ ${extraVoucher}`;
+                }
+            }
+
+            if (prizeForThisRow) {
+                matchedPrizes.push(prizeForThisRow.replace(/['"]/g, '').trim());
             }
         }
 
         let finalPrize = null;
         if (matchedPrizes.length > 0) {
             const uniquePrizes = [...new Set(matchedPrizes)];
-            // Use ' + ' with spacing for readability
+            // Use ' ✚ ' separator
             finalPrize = uniquePrizes.join(' ✚ ');
         } else {
-            // DEBUG LOGIC (Protected)
-            try {
-                const nameHex = searchName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
-
-                let scanResult = "No Row 269 found (Lines < 269).";
-                if (lines.length > 269) {
-                    const r = parseCSVLine(lines[269]);
-                    const rName = r[8] || "(undefined)";
-                    const rComp = r[9] || "(undefined)";
-                    const rNameHex = rName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
-                    scanResult = `Row 269 Name: '${rName}' (Hex: ${rNameHex}). Comp: '${rComp}'`;
-                }
-
-                // Only show detailed debug if name contains specialized chars or match failed mysteriously
-                finalPrize = `DEBUG: Server received '${searchName}' (Hex: ${nameHex}). ${scanResult}`;
-            } catch (debugErr: any) {
-                finalPrize = `DEBUG: Crash in debug logic: ${debugErr.message}`;
-            }
+            // NO MATCH
+            // (Debug logic removed as per user request for simplicity)
+            finalPrize = null;
         }
 
         return new Response(JSON.stringify({
@@ -146,12 +139,9 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        const msg = `DEBUG: CRITICAL_ERROR ${error.message}`;
-        return new Response(JSON.stringify({
-            prize: msg,
-            error: error.message
-        }), {
-            status: 200,
+        // Return 500 error effectively
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
     }
