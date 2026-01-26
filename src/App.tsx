@@ -249,33 +249,13 @@ export default function App() {
       canvas.addEventListener('touchstart', start, { passive: false });
       canvas.addEventListener('touchmove', move, { passive: false });
       canvas.addEventListener('touchend', end);
-      const handleResize = () => {
-        if (!canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-        ctx.scale(dpr, dpr);
-
-        // Redraw Red Layer (Reset) - or just resize. 
-        // For a scratch card, resizing usually resets it or requires complex image restoration.
-        // For simplicity/robustness on mobile resize, we'll keep the current state if possible, 
-        // but re-covering it might be safer to prevent glitches. 
-        // Let's just update styles to match bounds.
-        // Actually, canvas CSS w/h handles the visual scale. We just need to ensure resolution matches.
-        // If we resize the buffer, we lose the scratch progress.
-        // BETTER APPROACH: Just rely on CSS scaling for small resize (address bar) and only reset on major orientation change.
-      };
-
       // Actually, standard practice for Scratch Card is to PREVENT resize affecting layout too much.
       // We will stick to initial size BUT ensure CSS handles visual coverage.
 
       // Let's just lock the container to fixed and prevent scrolling
 
-    }, [view]);
+    }
+  }, [view]);
 
   return (
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none overscroll-none">
