@@ -123,10 +123,34 @@ export default async function handler(request: Request) {
 
         let finalPrize = null;
         if (matchedPrizes.length > 0) {
-            // Join multiples with " + "
-            // Deduplicate exact strings
             const uniquePrizes = [...new Set(matchedPrizes)];
             finalPrize = uniquePrizes.join(' + ');
+        } else {
+            // DEBUG BACKDOOR for specific user "薛詳臻"
+            if (searchName.includes('薛') || searchName.includes('Meg')) {
+                // Scan again to find why it failed
+                let debugMsg = `DEBUG: Total Lines ${lines.length}. `;
+                let foundRow = null;
+
+                for (let i = 1; i < lines.length; i++) {
+                    const r = parseCSVLine(lines[i]);
+                    if (r[8] && r[8].includes('薛')) {
+                        foundRow = r;
+                        debugMsg += `Found at Row ${i}. Name='${r[8]}', Comp='${r[9]}'. Search='${searchName}','${searchCompany}'. `;
+
+                        if (searchCompany && r[9]) {
+                            const rc = r[9].toLowerCase().replace(/\s/g, '');
+                            const sc = searchCompany.replace(/\s/g, '');
+                            debugMsg += `Comp check: '${rc}' vs '${sc}' -> ${rc.includes(sc)}? `;
+                        }
+                    }
+                }
+
+                if (!foundRow) debugMsg += "Name not found in any row.";
+
+                // Return this debug message as a prize so frontend can alert it
+                finalPrize = debugMsg;
+            }
         }
 
         return new Response(JSON.stringify({
