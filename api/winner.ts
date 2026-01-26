@@ -36,53 +36,52 @@ export default async function handler(request: Request) {
         const result = await mammoth.extractRawText({ buffer });
         const text = result.value;
 
-        // 3. Search for the Name AND Company using Line Pattern
-        // Debug analysis shows pattern per person (4 lines):
-        // 1. Prize + Unit (e.g. "新光三越3000禮券LEO")
-        // 2. Department/Brand code (e.g. "CR")
-        // 3. Chinese Name (e.g. "楊乃菁")
-        // 4. English Name (e.g. "Jin Yang")
-
+        // 3. Search for the Name (Relaxed Match)
         const lines = text.split('\n').filter(l => l.trim().length > 0);
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
-        let foundPrize = null;
+        // Find ALL candidates first
+        let candidates: { prize: string, companyContext: string, index: number }[] = [];
 
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-
-            // Match Chinese Name (Exact match)
-            if (line === searchName) {
-                // Potential match found at index i
-                // Check context. We expect Prize at i-2
-                if (i < 2) continue; // Should have preceding lines
-
+            if (lines[i].trim() === searchName) {
+                // Heuristic: Prize is i-2, Unit/Dept is i-1
+                if (i < 2) continue;
                 const prizeLine = lines[i - 2] || "";
                 const deptLine = lines[i - 1] || "";
 
-                // --- Company Validation ---
-                if (searchCompany) {
-                    const matchInPrize = prizeLine.toLowerCase().includes(searchCompany);
-                    const matchInDept = deptLine.toLowerCase().includes(searchCompany);
-                    // Also check if searchCompany is part of the Unit suffix
-
-                    if (!matchInPrize && !matchInDept) {
-                        continue; // Name found, but Company doesn't match this entry
-                    }
-                }
-
-                // --- Extract Prize ---
-                // "新光三越3000禮券ReSources" -> Remove "ReSources"
-                // Heuristic: remove trailing English/Symbols
-                // But keep numbers if inside (e.g. 3000)
-                // Regex: remove [a-zA-Z\s&]+ at the END of string
-
+                // Clean Prize
                 const cleanPrize = prizeLine.replace(/[a-zA-Z\s&]+$/, '').trim();
-                foundPrize = cleanPrize;
-                break;
+
+                // Company Context (Unit + Dept)
+                const context = (prizeLine + " " + deptLine).toLowerCase();
+
+                candidates.push({ prize: cleanPrize, companyContext: context, index: i });
             }
         }
+
+        let bestMatch = null;
+
+        if (candidates.length === 0) {
+            // No match found
+        } else if (candidates.length === 1) {
+            // Unique name match! Trust it even if company doesn't strictly match.
+            // (Unless it's a huge mismatch, but for now we trust the name)
+            bestMatch = candidates[0].prize;
+        } else {
+            // Multiple matches (same name). Filter by Company.
+            if (searchCompany) {
+                const exact = candidates.find(c => c.companyContext.includes(searchCompany));
+                if (exact) bestMatch = exact.prize;
+                else bestMatch = candidates[0].prize; // Fallback to first
+            } else {
+                bestMatch = candidates[0].prize;
+            }
+        }
+
+        let foundPrize = null;
+        if (bestMatch) foundPrize = bestMatch;
 
         return new Response(JSON.stringify({
             prize: foundPrize,

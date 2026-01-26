@@ -38,7 +38,7 @@ const assignPrize = async (name: string, company: string) => {
 };
 
 export default function App() {
-  const [view, setView] = useState('login'); // 'login', 'playing_action', 'result'
+  const [view, setView] = useState('login'); // 'login', 'playing_action', 'scratch', 'result'
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
   const [formData, setFormData] = useState({
     name: '',
@@ -46,6 +46,12 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
+
+  // Scratch Logic Refs
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scratchContainerRef = useRef<HTMLDivElement>(null);
+  const [isScratched, setIsScratched] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Fetch companies on mount
   useEffect(() => {
@@ -59,8 +65,6 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   const handleTimeUpdate = () => {
     if (view === 'login' && videoRef.current) {
       if (videoRef.current.currentTime >= IDLE_LOOP_END) {
@@ -73,9 +77,7 @@ export default function App() {
   const handleVideoEnded = () => {
     if (view === 'playing_action') {
       if (videoRef.current) videoRef.current.pause();
-      // Directly show result instead of scratch
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-      setView('result');
+      setView('scratch'); // Go to scratch instead of result directly
     }
   };
 
@@ -88,14 +90,11 @@ export default function App() {
     try {
       await fetch('/api/signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      console.log("Signup saved to internal DB");
     } catch (error) {
-      console.error("Signup Save Error", error);
+      console.error(error);
     }
   };
 
@@ -111,7 +110,6 @@ export default function App() {
       const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
       setPrize(assignedPrize);
 
-      // Save data to internal DB
       submitSignup(formData);
 
       setTimeout(() => {
@@ -134,7 +132,153 @@ export default function App() {
     }
   };
 
-  // Removed useEffect for scratch card logic
+  // Scratch Effect
+  useEffect(() => {
+    if (view === 'scratch' && canvasRef.current && scratchContainerRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const container = scratchContainerRef.current;
+
+      setTimeout(() => {
+        if (!container || !canvas || !ctx) return;
+
+        setIsScratched(false);
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        // Draw Scratch Layer - Image
+        const img = new Image();
+        img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
+
+        const drawLayer = () => {
+          ctx.globalCompositeOperation = 'source-over';
+          // 1. Fill canvas with a solid base color (Red/Gold theme)
+          ctx.fillStyle = '#ce1126';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // 2. Draw pattern/border
+          ctx.strokeStyle = '#fcd34d'; // Gold
+          ctx.lineWidth = 4;
+          ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+          // 3. Draw the Logo centered
+          const aspect = img.width / img.height;
+          let drawWidth = canvas.width * 0.9;
+          let drawHeight = drawWidth / aspect;
+
+          if (drawHeight > canvas.height * 0.9) {
+            drawHeight = canvas.height * 0.9;
+            drawWidth = drawHeight * aspect;
+          }
+
+          const x = (canvas.width - drawWidth) / 2;
+          const y = (canvas.height - drawHeight) / 2;
+
+          ctx.drawImage(img, x, y, drawWidth, drawHeight);
+
+          // Text Hint
+          ctx.font = 'bold 20px serif';
+          ctx.fillStyle = '#fcd34d';
+          ctx.textAlign = 'center';
+          ctx.fillText("刮開中大獎", canvas.width / 2, canvas.height - 20);
+
+          ctx.globalCompositeOperation = 'destination-out';
+        };
+
+        if (img.complete) { drawLayer(); }
+        else { img.onload = drawLayer; }
+      }, 100);
+
+      let isDrawing = false;
+      let moveCount = 0;
+
+      const getPos = (e: MouseEvent | TouchEvent) => {
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+        if ('changedTouches' in e) {
+          clientX = e.changedTouches[0].clientX;
+          clientY = e.changedTouches[0].clientY;
+        } else {
+          clientX = (e as MouseEvent).clientX;
+          clientY = (e as MouseEvent).clientY;
+        }
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      };
+
+      const scratch = (x: number, y: number) => {
+        if (!ctx) return;
+        ctx.beginPath();
+        ctx.arc(x, y, 30, 0, Math.PI * 2); // Bigger brush
+        ctx.fill();
+        moveCount++;
+      };
+
+      const checkTransparency = () => {
+        if (!ctx) return;
+        if (isScratched || moveCount < 5) return;
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let transparent = 0;
+        const sampleRate = 32;
+        for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
+          if (imageData.data[i] === 0) transparent++;
+        }
+        const totalSampled = (imageData.data.length / 4) / sampleRate;
+
+        if ((transparent / totalSampled) * 100 > 35) { // 35% is enough
+          setIsScratched(true);
+
+          // Richer Confetti
+          const duration = 3000;
+          const end = Date.now() + duration;
+
+          (function frame() {
+            confetti({
+              particleCount: 5,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0 },
+              colors: ['#ff0000', '#ffd700', '#ffffff']
+            });
+            confetti({
+              particleCount: 5,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1 },
+              colors: ['#ff0000', '#ffd700', '#ffffff']
+            });
+
+            if (Date.now() < end) {
+              requestAnimationFrame(frame);
+            }
+          }());
+
+          setTimeout(() => setView('result'), 1500);
+        }
+      };
+
+      const handleStart = (e: any) => { isDrawing = true; const pos = getPos(e); scratch(pos.x, pos.y); };
+      const handleMove = (e: any) => { if (!isDrawing) return; e.preventDefault(); const pos = getPos(e); scratch(pos.x, pos.y); };
+      const handleEnd = () => { isDrawing = false; checkTransparency(); };
+
+      canvas.addEventListener('mousedown', handleStart);
+      canvas.addEventListener('mousemove', handleMove);
+      canvas.addEventListener('mouseup', handleEnd);
+      canvas.addEventListener('touchstart', handleStart, { passive: false });
+      canvas.addEventListener('touchmove', handleMove, { passive: false });
+      canvas.addEventListener('touchend', handleEnd);
+
+      return () => {
+        canvas.removeEventListener('mousedown', handleStart);
+        canvas.removeEventListener('mousemove', handleMove);
+        canvas.removeEventListener('mouseup', handleEnd);
+        canvas.removeEventListener('touchstart', handleStart);
+        canvas.removeEventListener('touchmove', handleMove);
+        canvas.removeEventListener('touchend', handleEnd);
+      };
+    }
+  }, [view]);
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-serif text-white">
@@ -150,7 +294,6 @@ export default function App() {
         onEnded={handleVideoEnded}
       />
 
-      {/* Overlay: Darken only during Login */}
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {/* --- 1. Login Page --- */}
@@ -178,6 +321,7 @@ export default function App() {
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
+              {/* 1. Name */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
                 <div className="relative">
@@ -194,6 +338,7 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 2. Company */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
@@ -213,8 +358,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Removed Phone input */}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -232,25 +375,47 @@ export default function App() {
         <div className="relative z-20 h-full w-full pointer-events-none" />
       )}
 
-      {/* Removed Scratch Card Page */}
+      {/* --- 3. Scratch Card Page (Restored) --- */}
+      {view === 'scratch' && (
+        <div className="relative z-30 h-full w-full flex flex-col items-center justify-center animate-appear">
+          <div className="relative w-80 h-56 md:w-96 md:h-64">
 
-      {/* --- 3. Result Page (Pop-up Overlay) --- */}
+            {/* Hidden Result Underneath */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-xl border border-yellow-500/50 flex flex-col items-center justify-center text-center p-4 shadow-2xl">
+              <h3 className="text-yellow-400 text-lg font-bold drop-shadow-md mb-2">恭喜中獎</h3>
+              <p className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-lg">{prize}</p>
+            </div>
+
+            {/* Canvas Overlay */}
+            <div ref={scratchContainerRef} className="absolute inset-0 cursor-pointer overflow-hidden rounded-xl shadow-2xl transform hover:scale-[1.02] transition-transform">
+              <canvas ref={canvasRef} className="w-full h-full touch-none" />
+            </div>
+          </div>
+
+          <div className="mt-12 text-center animate-pulse">
+            <p className="text-yellow-200 text-lg font-bold bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30">
+              👉 請用力刮開螢幕
+            </p>
+          </div>
+        </div>
+      )}
+
+
+      {/* --- 4. Result Page (Pop-up Overlay) --- */}
       {view === 'result' && (
-        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          {/* Confetti should have fired on mount */}
-
+        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
           {/* Semi-transparent Glass Overlay */}
-          <div className="bg-black/80 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500/50 shadow-[0_0_80px_rgba(234,179,8,0.5)] max-w-lg w-full relative overflow-hidden">
+          <div className="bg-black/90 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
 
             {/* Spinning Light Effect Behind */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.1)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
 
             <div className="relative z-10">
               <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
 
-              <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">中獎通知</h2>
+              <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">恭喜中獎</h2>
 
-              <div className="bg-gradient-to-br from-red-900/80 to-red-950/80 p-8 rounded-2xl border border-red-500/30 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
+              <div className="bg-gradient-to-br from-red-900/90 to-red-950/90 p-8 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
                 <p className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 break-words leading-tight drop-shadow-sm">
                   {prize}
