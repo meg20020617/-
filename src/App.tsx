@@ -28,7 +28,7 @@ const assignPrize = async (name: string, company: string) => {
 };
 
 export default function App() {
-  const [view, setView] = useState('login'); // 'login', 'playing_action', 'result' (Unified)
+  const [view, setView] = useState('login');
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
@@ -36,7 +36,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
 
-  // Scratch Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isScratched, setIsScratched] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -52,7 +51,7 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // Celebration (Only fires when scratched)
+  // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isScratched) {
       const duration = 5000;
@@ -91,7 +90,7 @@ export default function App() {
   const handleVideoEnded = () => {
     if (view === 'playing_action') {
       if (videoRef.current) videoRef.current.pause();
-      setView('result'); // Switch to Unified Result View
+      setView('result');
     }
   };
 
@@ -145,7 +144,6 @@ export default function App() {
     }
   };
 
-  // Canvas Logic (Run once when view becomes result)
   useEffect(() => {
     if (view === 'result' && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -155,7 +153,7 @@ export default function App() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // Initial Draw
+      // Init Draw
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#ce1126';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -188,11 +186,9 @@ export default function App() {
       if (img.complete) finishDraw();
       else img.onload = finishDraw;
 
-      // Interaction
       let isDrawing = false;
       let moveCount = 0;
       const getPos = (e: MouseEvent | TouchEvent) => {
-        // ... (Simple pos logic)
         let clientX, clientY;
         if ('changedTouches' in e) {
           clientX = e.changedTouches[0].clientX;
@@ -211,7 +207,6 @@ export default function App() {
         moveCount++;
 
         if (!isScratched && moveCount > 5) {
-          // Check transparency periodically
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           let transparent = 0;
           const sampleRate = 32;
@@ -219,7 +214,7 @@ export default function App() {
             if (imageData.data[i] === 0) transparent++;
           }
           if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.35) {
-            setIsScratched(true); // Trigger fade out
+            setIsScratched(true);
           }
         }
       };
@@ -250,14 +245,10 @@ export default function App() {
         onEnded={handleVideoEnded}
       />
 
-      {/* Dark Overlay */}
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
-      {/* LOGIN VIEW */}
       {view === 'login' && (
         <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 animate-fade-in">
-          {/* ... Login Form omitted for brevity but kept in mind ... */}
-          {/* Full Login Form Re-implementation */}
           <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
@@ -267,7 +258,6 @@ export default function App() {
               <p className="text-yellow-100/80">今日好運攏總來</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Name input */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
                 <div className="relative">
@@ -275,7 +265,6 @@ export default function App() {
                   <input required name="name" type="text" placeholder="例如: 王小明" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.name} onChange={handleInputChange} />
                 </div>
               </div>
-              {/* Company Select */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
@@ -300,17 +289,17 @@ export default function App() {
           {/* THE FINAL CARD (Always rendered underneath) */}
           <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
 
-            {/* Spinning Light */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
 
+            {/* Centered Content */}
             <div className="relative z-10 flex flex-col items-center">
               <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
               <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">恭喜中獎</h2>
 
-              {/* Prize Box with Newline Support */}
+              {/* Prize Box with Centered Multi-line */}
               <div className="w-full bg-gradient-to-br from-red-900/90 to-red-950/90 p-6 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
-                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 w-full leading-normal drop-shadow-sm pb-1 flex flex-col gap-1">
+                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-1">
                   {prize.split('\n').map((line, idx) => (
                     <span key={idx}>{line}</span>
                   ))}
@@ -322,9 +311,7 @@ export default function App() {
                 <p className="text-yellow-500/80 text-sm">{formData.company}</p>
               </div>
 
-              <button onClick={() => window.location.reload()} className="mt-2 px-8 py-2 rounded-full border border-yellow-500/30 text-yellow-500/60 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all text-sm mb-6 pointer-events-auto z-50">
-                返回首頁
-              </button>
+              {/* Button Removed per request */}
 
               <div className="w-full bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-200 text-sm font-bold">⚠️ 請務必保留此截圖</p>
@@ -333,18 +320,16 @@ export default function App() {
             </div>
           </div>
 
-          {/* SCRATCH OVERLAY (Absolute on top) */}
-          {/* Transition opacity based on isScratched */}
+          {/* SCRATCH OVERLAY */}
           <canvas
             ref={canvasRef}
             className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-50 transition-opacity duration-1000 
                   ${isScratched ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                  bg-[#ce1126]`} // Initial Red BG to prevent flash
+                  bg-[#ce1126]`}
           />
         </div>
       )}
 
-      {/* Global Styles */}
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
