@@ -12,14 +12,22 @@ async function debug() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
 
-        // Convert to JSON (array of arrays)
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
-        console.log(`Sheet Name: ${sheetName}`);
-        console.log(`Total Rows: ${rows.length}`);
-        console.log("=== First 5 Rows ===");
-        rows.slice(0, 5).forEach((row, i) => {
-            console.log(`Row ${i}:`, JSON.stringify(row));
+        console.log(`Searching for "薛詳臻"...`);
+
+        rows.forEach((row, i) => {
+            const userInfo = row[row.length - 1];
+            if (typeof userInfo === 'string' && userInfo.includes("薛詳臻")) {
+                console.log(`FOUND at Row ${i}:`);
+                console.log(`Full Row:`, JSON.stringify(row));
+                console.log(`User Info Col: "${userInfo}"`);
+
+                // Simulate check
+                const searchCompany = "digitas";
+                const match = userInfo.toLowerCase().includes(searchCompany);
+                console.log(`Match "digitas"? ${match}`);
+            }
         });
 
     } catch (e) {

@@ -40,9 +40,6 @@ export default async function handler(request: Request) {
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
         // 3. Search Logic
-        // Structure based on debug:
-        // Col 2 (Index 2): Prize Name ("LG ...")
-        // Last Col (Index 9 or 10): User Info (" Jane Lee 李桂甄 SSC")
 
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
@@ -54,19 +51,45 @@ export default async function handler(request: Request) {
             const row = rows[i];
             if (!row || row.length < 3) continue;
 
-            const prizeName = row[2]; // Col 2: Prize
+            let prizeName = row[2]; // Col 2: Prize (Index 2)
             const userInfo = row[row.length - 1]; // Last Col: Info
 
             if (typeof userInfo !== 'string') continue;
 
-            // Check Chinese Name Match
-            // User info format: " EngName ChiName Company"
-            if (userInfo.includes(searchName)) {
+            const userInfoLower = userInfo.toLowerCase();
+            const searchNameLower = searchName.toLowerCase();
+
+            // Check Chinese Name Match (Case insensitive just in case)
+            if (userInfoLower.includes(searchNameLower)) {
 
                 // Company Check
                 if (searchCompany) {
-                    if (!userInfo.toLowerCase().includes(searchCompany)) {
+                    if (!userInfoLower.includes(searchCompany)) {
                         continue;
+                    }
+                }
+
+                // Construct Better Prize Name for Vouchers
+                // Row structure based on debug:
+                // Col 1: Type ("禮品" or "禮券") - Index 1
+                // Col 2: Item ("LG..." or "禮券") - Index 2
+                // Col 7: Brand ("新光三越") - Index 7
+                // Col 8: Amount (3000) - Index 8
+
+                const type = row[1];
+                const brand = row[7];
+                const amount = row[8];
+
+                // If it is a generic "Voucher" entry, construct a better name
+                if (type === '禮券' || prizeName === '禮券') {
+                    // Construct: "新光三越 3000元 禮券"
+                    let parts = [];
+                    if (brand && brand !== '無') parts.push(brand);
+                    if (amount) parts.push(`${amount}元`);
+                    parts.push('禮券');
+
+                    if (parts.length > 1) {
+                        prizeName = parts.join(' ');
                     }
                 }
 
