@@ -52,9 +52,7 @@ export default async function handler(request: Request) {
         const arrayBuffer = await response.arrayBuffer();
         const decoder = new TextDecoder('utf-8');
         const text = decoder.decode(arrayBuffer);
-
-        // Remove BOM if present
-        const cleanText = text.replace(/^\uFEFF/, '');
+        const cleanText = text.replace(/^\uFEFF/, ''); // Remove BOM
 
         const lines = cleanText.split('\n').filter(l => l.trim().length > 0);
 
@@ -78,10 +76,6 @@ export default async function handler(request: Request) {
             if (rowName === searchName) {
 
                 // Company Check
-                // Currently DISABLED strict checking as per previous instruction to "not make things difficult"
-                // BUT user said "Have to match company" ("不行 也要比對公司") in later prompts.
-                // So I will RE-ENABLE it but keep it robust (ignore space/case).
-
                 if (searchCompany && rowCompany) {
                     const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
                     const searchCompClean = searchCompany.replace(/\s/g, '');
@@ -93,8 +87,6 @@ export default async function handler(request: Request) {
 
                 // Construct Prize Name
                 let prizeName = row[2];
-
-                // If "禮券", construct a nicer name
                 if (prizeName.includes('禮券') || row[1].includes('禮券')) {
                     const brand = row[6]; // Index 6
                     const amount = row[7]; // Index 7
@@ -103,10 +95,8 @@ export default async function handler(request: Request) {
                     if (brand && brand !== '無' && brand !== '-') parts.push(brand);
                     if (amount && amount !== '-') parts.push(amount.replace(/['"]/g, '').trim() + '元');
 
-                    // Avoid duplicating "禮券" if already in prizeName
                     if (!prizeName.includes('禮券')) parts.push(prizeName);
                     else {
-                        // If prizeName is just "禮券", we use parts. If it's "SOGO禮券", we keep it.
                         if (prizeName === '禮券') parts.push('禮券');
                         else parts.push(prizeName);
                     }
@@ -126,31 +116,20 @@ export default async function handler(request: Request) {
             const uniquePrizes = [...new Set(matchedPrizes)];
             finalPrize = uniquePrizes.join(' + ');
         } else {
-            // DEBUG BACKDOOR for specific user "薛詳臻"
-            if (searchName.includes('薛') || searchName.includes('Meg')) {
-                // Scan again to find why it failed
-                let debugMsg = `DEBUG: Total Lines ${lines.length}. `;
-                let foundRow = null;
+            // DEBUG: If failed, return valuable info about what the server received
+            // Use very careful encoding logging
+            const nameHex = searchName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
 
-                for (let i = 1; i < lines.length; i++) {
-                    const r = parseCSVLine(lines[i]);
-                    if (r[8] && r[8].includes('薛')) {
-                        foundRow = r;
-                        debugMsg += `Found at Row ${i}. Name='${r[8]}', Comp='${r[9]}'. Search='${searchName}','${searchCompany}'. `;
-
-                        if (searchCompany && r[9]) {
-                            const rc = r[9].toLowerCase().replace(/\s/g, '');
-                            const sc = searchCompany.replace(/\s/g, '');
-                            debugMsg += `Comp check: '${rc}' vs '${sc}' -> ${rc.includes(sc)}? `;
-                        }
-                    }
+            // Scan for partial matches
+            let scanResult = "No partial match.";
+            for (let i = 1; i < lines.length && i < 300; i++) {
+                const r = parseCSVLine(lines[i]);
+                if (i === 269) {
+                    scanResult = `Row 269 Name: '${r[8]}' (${r[8].split('').map(c => c.charCodeAt(0).toString(16)).join(' ')}). Company: '${r[9]}'`;
                 }
-
-                if (!foundRow) debugMsg += "Name not found in any row.";
-
-                // Return this debug message as a prize so frontend can alert it
-                finalPrize = debugMsg;
             }
+
+            finalPrize = `DEBUG: Server received '${searchName}' (Hex: ${nameHex}). ${scanResult}`;
         }
 
         return new Response(JSON.stringify({

@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
 
-// Initial fallback, will be overwritten by API
+// Initial fallback
 const FALLBACK_COMPANIES = [
   "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
   "Performics", "MSL", "PMX", "Saatchi & Saatchi",
@@ -122,6 +122,13 @@ export default function App() {
       if (!assignedPrize) {
         setLoading(false);
         alert("名單中找不到此姓名，請重新輸入");
+        return;
+      }
+
+      // Check for Backend Debug Message
+      if (assignedPrize.startsWith("DEBUG:")) {
+        setLoading(false);
+        alert("【系統診斷訊息】請將此畫面截圖給工程師:\n\n" + assignedPrize);
         return;
       }
 
@@ -334,7 +341,7 @@ export default function App() {
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
               <p className="text-yellow-100/80">今日好運攏總來</p>
-              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v2.2.0 (Testing)</p>
+              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v3.0.0 (Debug)</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
