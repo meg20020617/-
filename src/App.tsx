@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Building2, Sparkles, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const IDLE_LOOP_END = 5.0;
+const IDLE_LOOP_END = 5.0; // Force Update Trigger 2
+
 
 // Initial fallback
 const FALLBACK_COMPANIES = [
