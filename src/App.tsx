@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Building2, Sparkles, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const IDLE_LOOP_END = 5.0; // Force Update Trigger 2
-
+const IDLE_LOOP_END = 5.0;
 
 // Initial fallback
 const FALLBACK_COMPANIES = [
@@ -38,7 +37,9 @@ export default function App() {
   const [prize, setPrize] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isWinningTriggered, setIsWinningTriggered] = useState(false); // Only used for fireworks trigger
+  const [isWinningTriggered, setIsWinningTriggered] = useState(false);
+  // Track readiness to remove Red BG
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -182,6 +183,9 @@ export default function App() {
         ctx.textAlign = 'center';
         ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + 80);
         ctx.globalCompositeOperation = 'destination-out';
+
+        // READY!
+        setIsCanvasReady(true);
       };
 
       if (img.complete) finishDraw();
@@ -302,7 +306,8 @@ export default function App() {
               <div className="w-full bg-gradient-to-br from-red-900/90 to-red-950/90 p-6 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
                 <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-1">
-                  {prize.split('\n').map((line, idx) => (
+                  {/* USE ||| SEPARATOR */}
+                  {prize.split('|||').map((line, idx) => (
                     <span key={idx} className="block">{line}</span>
                   ))}
                 </div>
@@ -322,10 +327,12 @@ export default function App() {
             </div>
           </div>
 
-          {/* SCRATCH OVERLAY (Does NOT fade out automatically anymore) */}
+          {/* SCRATCH OVERLAY */}
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full cursor-pointer touch-none z-50 bg-[#ce1126]"
+            // Use isCanvasReady to toggle CSS background
+            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
+                   ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
           />
         </div>
       )}

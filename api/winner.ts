@@ -103,8 +103,8 @@ export default async function handler(request: Request) {
                 if (extraVoucher) prizeForThisRow = extraVoucher;
             } else {
                 if (extraVoucher) {
-                    // NEWLINE SEPARATOR for App.tsx split logic
-                    prizeForThisRow = `${rawPrize}\n+${extraVoucher}`;
+                    // SEPARATOR ||| 
+                    prizeForThisRow = `${rawPrize}|||+${extraVoucher}`;
                 }
             }
 
@@ -116,8 +116,8 @@ export default async function handler(request: Request) {
         let finalPrize = null;
         if (matchedPrizes.length > 0) {
             const uniquePrizes = [...new Set(matchedPrizes)];
-            // NEWLINE SEPARATOR for Multiples
-            finalPrize = uniquePrizes.join('\n+');
+            // SEPARATOR ||| for Multiples
+            finalPrize = uniquePrizes.join('|||');
         } else {
             finalPrize = null;
         }
