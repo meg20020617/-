@@ -1,11 +1,11 @@
-import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
-// Switch to Node.js runtime for mammoth support
+// Switch to Node.js runtime for xlsx support
 export const config = {
     runtime: 'nodejs',
 };
 
-const DOCX_URL = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/%E5%8C%B9%E5%B0%8D%E5%90%8D%E5%96%AE.docx";
+const DOCX_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8E(%E6%9C%AAFinal).xlsx";
 
 export default async function handler(request: Request) {
     if (request.method !== 'GET') {
@@ -18,29 +18,33 @@ export default async function handler(request: Request) {
             throw new Error('Failed to fetch prize list');
         }
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
 
-        const result = await mammoth.extractRawText({ buffer });
-        const text = result.value;
-        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
         const companies = new Set<string>();
 
-        // Heuristic: 4-line block per person
-        // Line 0: Prize + Unit (e.g. "PrizeLEO")
-        // Line 1: Dept (e.g. "CR")
-        // Line 2: Chi
-        // Line 3: Eng
+        // Row 1 onwards
+        // Last Column: " Jane Lee 李桂甄 SSC"
+        // Need to extract "SSC"
 
-        for (let i = 0; i < lines.length; i += 4) {
-            const prizeLine = lines[i];
-            // Extract suffix from prizeLine to get Company
-            // Regex: Catch trailing English words
-            const match = prizeLine && prizeLine.match(/([a-zA-Z\s&]+)$/);
-            if (match && match[1]) {
-                const company = match[1].trim();
-                // Filter out small garbage or non-companies if needed
-                if (company.length > 1) {
-                    companies.add(company);
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const userInfo = row[row.length - 1]; // Last col
+
+            if (typeof userInfo === 'string') {
+                const parts = userInfo.trim().split(/\s+/);
+                const last = parts[parts.length - 1]; // Heuristic: Company is last word
+
+                // Refined Heuristic:
+                // Check if last part is NOT Chinese (company usually English abbr like SSC, PMX)
+                // If contains Chinese, maybe it's part of name? 
+                // "李桂甄" -> Chinese
+                // "SSC" -> Eng
+                if (last && !/[\u4e00-\u9fa5]/.test(last) && last.length > 1) {
+                    companies.add(last);
                 }
             }
         }

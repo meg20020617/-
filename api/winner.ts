@@ -1,11 +1,11 @@
-import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
-// Switch to Node.js runtime for mammoth support
+// Switch to Node.js runtime for xlsx support
 export const config = {
     runtime: 'nodejs',
 };
 
-const DOCX_URL = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/%E5%8C%B9%E5%B0%8D%E5%90%8D%E5%96%AE.docx";
+const DOCX_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8E(%E6%9C%AAFinal).xlsx";
 
 export default async function handler(request: Request) {
     if (request.method !== 'GET') {
@@ -24,75 +24,69 @@ export default async function handler(request: Request) {
     }
 
     try {
-        // 1. Fetch DOCX from Blob
+        // 1. Fetch XLSX from Blob
         const response = await fetch(DOCX_URL);
         if (!response.ok) {
             throw new Error('Failed to fetch prize list');
         }
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
 
-        // 2. Parse Text
-        const result = await mammoth.extractRawText({ buffer });
-        const text = result.value;
+        // 2. Parse XLSX
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0]; // Assuming first sheet
+        const sheet = workbook.Sheets[sheetName];
 
-        // 3. Search for the Name (Relaxed Match)
-        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        // Convert to array of arrays
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+
+        // 3. Search Logic
+        // Structure based on debug:
+        // Col 2 (Index 2): Prize Name ("LG ...")
+        // Last Col (Index 9 or 10): User Info (" Jane Lee 李桂甄 SSC")
+
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
-        // Find ALL candidates first
-        let candidates: { prize: string, companyContext: string, index: number }[] = [];
-
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].trim() === searchName) {
-                // Heuristic: Prize is i-2, Unit/Dept is i-1
-                if (i < 2) continue;
-                const prizeLine = lines[i - 2] || "";
-                const deptLine = lines[i - 1] || "";
-
-                // Clean Prize
-                const cleanPrize = prizeLine.replace(/[a-zA-Z\s&]+$/, '').trim();
-
-                // Company Context (Unit + Dept)
-                const context = (prizeLine + " " + deptLine).toLowerCase();
-
-                candidates.push({ prize: cleanPrize, companyContext: context, index: i });
-            }
-        }
-
-        let bestMatch = null;
-
-        if (candidates.length === 0) {
-            // No match found
-        } else if (candidates.length === 1) {
-            // Unique name match! Trust it even if company doesn't strictly match.
-            // (Unless it's a huge mismatch, but for now we trust the name)
-            bestMatch = candidates[0].prize;
-        } else {
-            // Multiple matches (same name). Filter by Company.
-            if (searchCompany) {
-                const exact = candidates.find(c => c.companyContext.includes(searchCompany));
-                if (exact) bestMatch = exact.prize;
-                else bestMatch = candidates[0].prize; // Fallback to first
-            } else {
-                bestMatch = candidates[0].prize;
-            }
-        }
-
         let foundPrize = null;
-        if (bestMatch) foundPrize = bestMatch;
+
+        // Start from row 1 (skip header)
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length < 3) continue;
+
+            const prizeName = row[2]; // Col 2: Prize
+            const userInfo = row[row.length - 1]; // Last Col: Info
+
+            if (typeof userInfo !== 'string') continue;
+
+            // Check Chinese Name Match
+            // User info format: " EngName ChiName Company"
+            if (userInfo.includes(searchName)) {
+
+                // Company Check
+                if (searchCompany) {
+                    if (!userInfo.toLowerCase().includes(searchCompany)) {
+                        continue;
+                    }
+                }
+
+                if (prizeName) {
+                    foundPrize = prizeName;
+                    break;
+                }
+            }
+        }
 
         return new Response(JSON.stringify({
             prize: foundPrize,
-            source: 'blob_runtime'
+            timestamp: new Date().toISOString()
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (error) {
-        console.error("Runtime Search Error:", error);
+        console.error("Winner Algorithm Error:", error);
         return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }

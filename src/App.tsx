@@ -31,6 +31,10 @@ const assignPrize = async (name: string, company: string) => {
 export default function App() {
   const [view, setView] = useState('login'); // 'login', 'playing_action', 'scratch', 'result'
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
+
+  // Maintenance Mode Check
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
   const [formData, setFormData] = useState({
     name: '',
     company: ''
@@ -55,6 +59,20 @@ export default function App() {
       })
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
+
+  if (isMaintenance) {
+    return (
+      <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-white p-6 text-center font-serif">
+        <img
+          src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png"
+          alt="Logo"
+          className="w-48 mb-8 opacity-80 grayscale"
+        />
+        <h1 className="text-3xl font-bold text-yellow-500 mb-4">活動尚未開始</h1>
+        <p className="text-gray-400">目前系統維護中，請稍後再回來簽到。</p>
+      </div>
+    );
+  }
 
   const handleTimeUpdate = () => {
     if (view === 'login' && videoRef.current) {
