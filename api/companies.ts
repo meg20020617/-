@@ -36,8 +36,14 @@ export default async function handler(request: Request) {
         if (!response.ok) {
             throw new Error('Failed to fetch prize list');
         }
-        const text = await response.text();
-        const lines = text.split('\n').filter(l => l.trim().length > 0);
+
+        // FORCE UTF-8
+        const arrayBuffer = await response.arrayBuffer();
+        const decoder = new TextDecoder('utf-8');
+        const text = decoder.decode(arrayBuffer);
+        const cleanText = text.replace(/^\uFEFF/, '');
+
+        const lines = cleanText.split('\n').filter(l => l.trim().length > 0);
 
         const companies = new Set<string>();
 
@@ -48,9 +54,9 @@ export default async function handler(request: Request) {
             const comp = row[9];
 
             if (comp && comp !== '無' && comp.length > 1) {
-                // Clean up quotes/spaces
                 const cleanComp = comp.replace(/['"]/g, '').trim();
-                if (cleanComp) {
+                // Filter out obviously non-company strings if needed
+                if (cleanComp && cleanComp !== '-') {
                     companies.add(cleanComp);
                 }
             }
@@ -67,7 +73,7 @@ export default async function handler(request: Request) {
 
     } catch (error) {
         console.error("Runtime Company Fetch Error:", error);
-        // Fallback list just in case
+        // Fallback list
         return new Response(JSON.stringify({
             companies: [
                 "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
