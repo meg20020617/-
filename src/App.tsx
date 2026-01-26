@@ -196,10 +196,6 @@ export default function App() {
       let isDrawing = false;
       let moveCount = 0;
 
-      const checkWin = () => {
-        // Redundant for now, rely on immediate action
-      };
-
       const getPos = (e: MouseEvent | TouchEvent) => {
         let clientX, clientY;
         if ('changedTouches' in e) {
@@ -275,73 +271,71 @@ export default function App() {
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
-                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange} />
-                  {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
-                </select> { /* Fixed missing closing tag issue in previous snippet if any */}
+                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
+                    <option value="" disabled>請選擇公司</option>
+                    {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
+                  </select>
+                </div>
               </div>
+              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
+                {loading ? '資料確認中...' : '簽到並開抽！'}
+              </button>
+            </form>
           </div>
-          <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
-            {loading ? '資料確認中...' : '簽到並開抽！'}
-          </button>
-        </form>
-          </div>
-        </div >
-      )
-}
+        </div>
+      )}
 
-{/* RESULT VIEW - FULL SCREEN BLACK COVER */ }
-{
-  view === 'result' && (
-    <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
+      {/* RESULT VIEW - FULL SCREEN BLACK COVER */}
+      {view === 'result' && (
+        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
 
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-40">
+          <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-40">
 
-        <div className="relative z-50 w-full px-6 flex flex-col items-center">
+            <div className="relative z-50 w-full px-6 flex flex-col items-center">
 
-          <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-10 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            恭喜中獎
-          </h2>
+              <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-10 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                恭喜中獎
+              </h2>
 
-          {/* Prize Text - Huge */}
-          <div className="w-full my-6">
-            <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
-              {prize.split('|||').map((line, idx) => (
-                <span key={idx} className="block">{line}</span>
-              ))}
+              {/* Prize Text - Huge */}
+              <div className="w-full my-6">
+                <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
+                  {prize.split('|||').map((line, idx) => (
+                    <span key={idx} className="block">{line}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-12 mt-8">
+                <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
+                <p className="text-yellow-500/80 text-xl">{formData.company}</p>
+              </div>
+
+              <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+                <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
+                  請截圖此畫面<br />
+                  活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3 mb-12 mt-8">
-            <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
-            <p className="text-yellow-500/80 text-xl">{formData.company}</p>
-          </div>
-
-          <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
-            <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
-              請截圖此畫面<br />
-              活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* SCRATCH OVERLAY - FULL SCREEN */}
-      <canvas
-        ref={canvasRef}
-        className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
+          {/* SCRATCH OVERLAY - FULL SCREEN */}
+          <canvas
+            ref={canvasRef}
+            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
                    ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
-      />
-    </div>
-  )
-}
+          />
+        </div>
+      )}
 
-<style>{`
+      <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 1s ease-out; }
         .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
         .font-serif { font-family: "Noto Serif TC", "Songti TC", serif; }
       `}</style>
-    </div >
+    </div>
   );
 }
