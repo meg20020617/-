@@ -114,7 +114,8 @@ export default async function handler(request: Request) {
         let finalPrize = null;
         if (matchedPrizes.length > 0) {
             const uniquePrizes = [...new Set(matchedPrizes)];
-            finalPrize = uniquePrizes.join(' + ');
+            // Use ' + ' with spacing for readability
+            finalPrize = uniquePrizes.join(' ✚ ');
         } else {
             // DEBUG LOGIC (Protected)
             try {

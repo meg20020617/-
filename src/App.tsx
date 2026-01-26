@@ -475,7 +475,7 @@ export default function App() {
         .animate-slide-up { animation: slide-up 0.5s ease-out; }
         
         .font-serif {
-          font-family: "Songti TC", "Noto Serif TC", "PMingLiU", "SimSun", serif;
+          font-family: "STFangsong", "FangSong", "Songti TC", "Noto Serif TC", "PMingLiU", "SimSun", serif;
         }
       `}</style>
     </div>
