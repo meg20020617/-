@@ -420,10 +420,14 @@ export default function App() {
                 <p className="text-yellow-500/80 text-sm">{formData.company}</p>
               </div>
 
-              <p className="text-gray-400 text-xs leading-relaxed mb-6">
-                請務必保留此截圖，並於活動結束後，<br />
-                向 <span className="text-yellow-500 font-bold">福委會</span> 出示截圖以領取獎項。
-              </p>
+              <div className="bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3 mb-6">
+                <p className="text-yellow-200 text-sm leading-relaxed font-bold">
+                  ⚠️ 請務必保留此截圖
+                </p>
+                <p className="text-gray-300 text-xs mt-1">
+                  活動結束後，請向 <span className="text-yellow-400 font-bold">福委會</span> 出示以領取獎項。
+                </p>
+              </div>
 
               <button
                 onClick={() => window.location.reload()}
