@@ -47,7 +47,6 @@ export default async function handler(request: Request) {
             throw new Error('Failed to fetch prize list');
         }
 
-        // Safety: Try-Catch around decoding
         let lines: string[] = [];
         try {
             const arrayBuffer = await response.arrayBuffer();
@@ -73,41 +72,42 @@ export default async function handler(request: Request) {
 
             if (!rowName) continue;
 
-            if (rowName === searchName) {
-                // Company Check Re-enabled (Robust)
-                if (searchCompany && rowCompany) {
-                    const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
-                    const searchCompClean = searchCompany.replace(/\s/g, '');
+            // 1. Company Match Check (Priority as requested)
+            if (searchCompany) {
+                const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
+                const searchCompClean = searchCompany.replace(/\s/g, '');
 
-                    if (!rowCompClean.includes(searchCompClean) && !searchCompClean.includes(rowCompClean)) {
-                        continue;
-                    }
+                // If company doesn't match, skip row immediately
+                if (!rowCompClean.includes(searchCompClean) && !searchCompClean.includes(rowCompClean)) {
+                    continue;
+                }
+            }
+
+            // 2. Name Match Check
+            if (rowName !== searchName) continue;
+
+            // 3. Prize Construction
+            let prizeName = row[2] || "";
+            if (prizeName.includes('禮券') || (row[1] && row[1].includes('禮券'))) {
+                const brand = row[6];
+                const amount = row[7];
+
+                let parts = [];
+                if (brand && brand !== '無' && brand !== '-') parts.push(brand);
+                if (amount && amount !== '-') parts.push(amount.replace(/['"]/g, '').trim() + '元');
+
+                if (!prizeName.includes('禮券')) parts.push(prizeName);
+                else {
+                    if (prizeName === '禮券') parts.push('禮券');
+                    else parts.push(prizeName);
                 }
 
-                let prizeName = row[2] || "";
+                const uniqueParts = [...new Set(parts)];
+                if (uniqueParts.length > 0) prizeName = uniqueParts.join(' ');
+            }
 
-                // Prize Construction
-                if (prizeName.includes('禮券') || (row[1] && row[1].includes('禮券'))) {
-                    const brand = row[6];
-                    const amount = row[7];
-
-                    let parts = [];
-                    if (brand && brand !== '無' && brand !== '-') parts.push(brand);
-                    if (amount && amount !== '-') parts.push(amount.replace(/['"]/g, '').trim() + '元');
-
-                    if (!prizeName.includes('禮券')) parts.push(prizeName);
-                    else {
-                        if (prizeName === '禮券') parts.push('禮券');
-                        else parts.push(prizeName);
-                    }
-
-                    const uniqueParts = [...new Set(parts)];
-                    if (uniqueParts.length > 0) prizeName = uniqueParts.join(' ');
-                }
-
-                if (prizeName) {
-                    matchedPrizes.push(prizeName.replace(/['"]/g, '').trim());
-                }
+            if (prizeName) {
+                matchedPrizes.push(prizeName.replace(/['"]/g, '').trim());
             }
         }
 
@@ -116,7 +116,7 @@ export default async function handler(request: Request) {
             const uniquePrizes = [...new Set(matchedPrizes)];
             finalPrize = uniquePrizes.join(' + ');
         } else {
-            // DEBUG LOGIC (Protected from Crashes)
+            // DEBUG LOGIC (Protected)
             try {
                 const nameHex = searchName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
 
@@ -125,13 +125,11 @@ export default async function handler(request: Request) {
                     const r = parseCSVLine(lines[269]);
                     const rName = r[8] || "(undefined)";
                     const rComp = r[9] || "(undefined)";
-
-                    // Safe Hex dump
                     const rNameHex = rName.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
-
                     scanResult = `Row 269 Name: '${rName}' (Hex: ${rNameHex}). Comp: '${rComp}'`;
                 }
 
+                // Only show detailed debug if name contains specialized chars or match failed mysteriously
                 finalPrize = `DEBUG: Server received '${searchName}' (Hex: ${nameHex}). ${scanResult}`;
             } catch (debugErr: any) {
                 finalPrize = `DEBUG: Crash in debug logic: ${debugErr.message}`;
@@ -147,14 +145,12 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        // Return Error as 200 OK with DEBUG prefix so frontend shows it!
-        // This is crucial for user feedback
         const msg = `DEBUG: CRITICAL_ERROR ${error.message}`;
         return new Response(JSON.stringify({
             prize: msg,
             error: error.message
         }), {
-            status: 200, // Returning 200 to allow frontend to read the "prize" message
+            status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
     }
