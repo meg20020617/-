@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Building2, Sparkles, Download } from 'lucide-react';
+import { User, Building2, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
@@ -38,7 +38,6 @@ export default function App() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isWinningTriggered, setIsWinningTriggered] = useState(false);
-  // Track readiness to remove Red BG
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -56,18 +55,18 @@ export default function App() {
   // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
-      const duration = 5000;
-      const animationEnd = Date.now() + duration;
-      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+      // High Z-Index to show ABOVE the canvas
+      const defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 10000 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
       const interval: any = setInterval(function () {
-        const timeLeft = animationEnd - Date.now();
-        if (timeLeft <= 0) return clearInterval(interval);
-        const particleCount = 50 * (timeLeft / duration);
+        const particleCount = 50;
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
+
+      // Stop after 5 seconds
+      setTimeout(() => clearInterval(interval), 5000);
       return () => clearInterval(interval);
     }
   }, [view, isWinningTriggered]);
@@ -184,7 +183,6 @@ export default function App() {
         ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + 80);
         ctx.globalCompositeOperation = 'destination-out';
 
-        // READY!
         setIsCanvasReady(true);
       };
 
@@ -211,18 +209,9 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
-        // Trigger Fireworks at 35% but DO NOT fade out layer
+        // Trigger Fireworks early (when scratching starts)
         if (!isWinningTriggered && moveCount > 5) {
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          let transparent = 0;
-          const sampleRate = 32;
-          // Fast sampling
-          for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
-            if (imageData.data[i] === 0) transparent++;
-          }
-          if ((transparent / (imageData.data.length / 4 / sampleRate)) > 0.35) {
-            setIsWinningTriggered(true);
-          }
+          setIsWinningTriggered(true);
         }
       };
 
@@ -293,36 +282,39 @@ export default function App() {
       {/* UNIFIED RESULT VIEW (Only visible when view === 'result') */}
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
-          <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
+          <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden flex flex-col items-center justify-center min-h-[60vh]">
 
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
 
-            {/* Centered Content */}
-            <div className="relative z-10 flex flex-col items-center">
-              <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
-              <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">恭喜中獎</h2>
+            {/* Cleanup: Removed Sparkles Icon */}
 
-              {/* Prize Box with Centered Multi-line */}
-              <div className="w-full bg-gradient-to-br from-red-900/90 to-red-950/90 p-6 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
-                <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
-                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-1">
-                  {/* USE ||| SEPARATOR */}
+            {/* Huge Title */}
+            <div className="relative z-10 w-full">
+              <h2 className="text-4xl md:text-5xl font-extrabold text-yellow-400 mb-8 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                恭喜中獎
+              </h2>
+
+              {/* Prize Box - Simplified */}
+              <div className="w-full bg-gradient-to-br from-red-900/60 to-red-950/60 p-6 rounded-2xl border border-red-500/30 my-4">
+                {/* Cleanup: Removed English "CHINESE NEW YEAR" text */}
+
+                <div className="text-3xl md:text-5xl font-black text-white w-full leading-normal drop-shadow-sm pb-1 flex flex-col items-center gap-2">
                   {prize.split('|||').map((line, idx) => (
                     <span key={idx} className="block">{line}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2 mb-8">
-                <p className="text-white text-lg font-bold">{formData.name}</p>
-                <p className="text-yellow-500/80 text-sm">{formData.company}</p>
+              <div className="space-y-2 mb-10 mt-6">
+                <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+                <p className="text-yellow-500/80 text-lg">{formData.company}</p>
               </div>
 
-              {/* No Button */}
-
-              <div className="w-full bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3">
-                <p className="text-yellow-200 text-sm font-bold">⚠️ 請務必保留此截圖</p>
-                <p className="text-gray-300 text-xs mt-1">活動結束後，請向 <span className="text-yellow-400 font-bold">福委會</span> 出示以領取獎項。</p>
+              <div className="w-full bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+                <p className="text-white font-bold text-base leading-relaxed tracking-wide">
+                  請截圖此畫面<br />
+                  活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+                </p>
               </div>
             </div>
           </div>
@@ -330,7 +322,6 @@ export default function App() {
           {/* SCRATCH OVERLAY */}
           <canvas
             ref={canvasRef}
-            // Use isCanvasReady to toggle CSS background
             className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
                    ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
           />
