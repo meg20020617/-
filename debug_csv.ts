@@ -31,7 +31,7 @@ async function debug() {
 
         console.log(`Total Rows: ${lines.length}`);
 
-        console.log("Searching for '薛詳臻'...");
+        console.log("Searching for '詹家峻'...");
         let foundCount = 0;
 
         for (let i = 1; i < lines.length; i++) {
@@ -39,7 +39,7 @@ async function debug() {
             const name = row[8];
             const comp = row[9];
 
-            if (name && name.includes("薛詳臻")) {
+            if (name && name.includes("詹家峻")) {
                 foundCount++;
                 console.log(`[Match ${foundCount}] Row ${i}:`);
                 console.log(`  Raw: ${lines[i]}`);
@@ -51,8 +51,6 @@ async function debug() {
                 console.log(`  Col 7 (Amt?): '${row[7]}'`);
             }
         }
-
-        if (foundCount === 0) console.log("NO MATCHES FOUND FOR '薛詳臻'");
 
     } catch (e) {
         console.error(e);

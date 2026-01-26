@@ -20,7 +20,6 @@ const assignPrize = async (name: string, company: string) => {
       const data = await res.json();
       if (data.prize) return data.prize;
     }
-    // If not found, return null explicitly
     return null;
   } catch (e) {
     console.error("API Error:", e);
@@ -29,26 +28,19 @@ const assignPrize = async (name: string, company: string) => {
 };
 
 export default function App() {
-  const [view, setView] = useState('login'); // 'login', 'playing_action', 'scratch', 'result'
+  const [view, setView] = useState('login');
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
-
-  // Maintenance Mode Check
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
-  const [formData, setFormData] = useState({
-    name: '',
-    company: ''
-  });
+  const [formData, setFormData] = useState({ name: '', company: '' });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
 
-  // Scratch Logic Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scratchContainerRef = useRef<HTMLDivElement>(null);
   const [isScratched, setIsScratched] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Fetch companies on mount
   useEffect(() => {
     fetch('/api/companies')
       .then(res => res.ok ? res.json() : null)
@@ -60,30 +52,20 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // --- CELEBRATION EFFECT ---
-  // Fires when view switches to 'result'
   useEffect(() => {
     if (view === 'result') {
-      // Fire confetti fireworks
       const duration = 5000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
       const interval: any = setInterval(function () {
         const timeLeft = animationEnd - Date.now();
-
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-
+        if (timeLeft <= 0) return clearInterval(interval);
         const particleCount = 50 * (timeLeft / duration);
-        // since particles fall down, start a bit higher than random
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
-
       return () => clearInterval(interval);
     }
   }, [view]);
@@ -130,9 +112,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) { console.error(error); }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -144,19 +124,12 @@ export default function App() {
     setLoading(true);
 
     try {
-      // Strict Validation
       const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
 
-      if (!assignedPrize) {
+      if (!assignedPrize || assignedPrize.startsWith("DEBUG:")) {
         setLoading(false);
-        alert("名單中找不到此姓名，請重新輸入");
-        return;
-      }
-
-      // Check for Backend Debug Message
-      if (assignedPrize.startsWith("DEBUG:")) {
-        setLoading(false);
-        alert("【系統診斷訊息】請將此畫面截圖給工程師:\n\n" + assignedPrize);
+        // Simplified Error Message per user request
+        alert("找不到該姓名，請重新輸入！");
         return;
       }
 
@@ -183,12 +156,11 @@ export default function App() {
     }
   };
 
-  // Scratch Effect
   useEffect(() => {
     if (view === 'scratch' && canvasRef.current && scratchContainerRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      const container = scratchContainerRef.current; // Now full screen container
+      const container = scratchContainerRef.current;
 
       setTimeout(() => {
         if (!container || !canvas || !ctx) return;
@@ -197,13 +169,11 @@ export default function App() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Draw Full Screen Scratch Layer
         const drawLayer = () => {
           ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = '#ce1126'; // Red
+          ctx.fillStyle = '#ce1126';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Gold Dust
           ctx.fillStyle = '#fcd34d';
           for (let i = 0; i < 80; i++) {
             ctx.beginPath();
@@ -211,7 +181,6 @@ export default function App() {
             ctx.fill();
           }
 
-          // Center Text / Image
           const img = new Image();
           img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
 
@@ -223,8 +192,7 @@ export default function App() {
             const y = (canvas.height - drawHeight) / 2;
             ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
-            // Text
-            ctx.font = 'bold 36px serif';
+            ctx.font = 'bold 36px "Noto Serif TC", serif'; // Explicit font
             ctx.fillStyle = '#fcd34d';
             ctx.textAlign = 'center';
             ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + 80);
@@ -303,7 +271,6 @@ export default function App() {
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-serif text-white">
-      {/* Background Video Layer */}
       <video
         ref={videoRef}
         className="fixed top-0 left-0 w-full h-full object-cover z-0"
@@ -317,21 +284,12 @@ export default function App() {
 
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
-      {/* --- 1. Login Page --- */}
       {view === 'login' && (
         <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 animate-fade-in">
           <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
-
-            {/* Hidden CSV Download Link */}
-            <a
-              href="/api/export_signups"
-              download
-              className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors"
-              title="下載名單"
-            >
+            <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
-
             <div className="text-center mb-8">
               <img
                 src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png"
@@ -339,11 +297,8 @@ export default function App() {
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
               <p className="text-yellow-100/80">今日好運攏總來</p>
-              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v3.1.0 (Mobile UI)</p>
             </div>
-
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* 1. Name */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
                 <div className="relative">
@@ -353,14 +308,12 @@ export default function App() {
                     name="name"
                     type="text"
                     placeholder="例如: 王小明"
-                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all font-serif"
                     value={formData.name}
                     onChange={handleInputChange}
                   />
                 </div>
               </div>
-
-              {/* 2. Company */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
@@ -368,7 +321,7 @@ export default function App() {
                   <select
                     required
                     name="company"
-                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all appearance-none"
+                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all appearance-none font-serif"
                     value={formData.company}
                     onChange={handleInputChange}
                   >
@@ -379,7 +332,6 @@ export default function App() {
                   </select>
                 </div>
               </div>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -392,64 +344,43 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 2. Action View (Invisible UI, pure video) --- */}
-      {view === 'playing_action' && (
-        <div className="relative z-20 h-full w-full pointer-events-none" />
-      )}
+      {view === 'playing_action' && <div className="relative z-20 h-full w-full pointer-events-none" />}
 
-      {/* --- 3. Scratch Card Page (Full Screen Overlay) --- */}
       {view === 'scratch' && (
         <div ref={scratchContainerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-
-          {/* Result Underneath (Full Screen Center) */}
           <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-appear">
             <h3 className="text-yellow-400 text-3xl font-bold drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] mb-6">恭喜中獎</h3>
             <p className="text-3xl md:text-5xl font-black text-white leading-normal drop-shadow-[0_4px_8px_rgba(0,0,0,1)] bg-black/50 p-6 rounded-3xl border border-yellow-500/30">
               {prize}
             </p>
           </div>
-
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-pointer touch-none" />
         </div>
       )}
 
-      {/* --- 4. Result Page (Pop-up Overlay) --- */}
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
-          {/* Semi-transparent Glass Overlay */}
           <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
-
-            {/* Spinning Light Effect Behind */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
-
             <div className="relative z-10 flex flex-col items-center">
               <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
-
               <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">恭喜中獎</h2>
-
-              {/* Prize Box - Added max-w and tighter padding for mobile safety */}
               <div className="w-full bg-gradient-to-br from-red-900/90 to-red-950/90 p-6 md:p-8 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
-
-                {/* Font Size Adjusted: 3xl on mobile, 5xl on desktop. Leading Normal. */}
                 <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 break-words w-full leading-normal drop-shadow-sm pb-1">
                   {prize}
                 </p>
               </div>
-
               <div className="space-y-2 mb-8">
                 <p className="text-white text-lg font-bold">{formData.name}</p>
                 <p className="text-yellow-500/80 text-sm">{formData.company}</p>
               </div>
-
               <button
                 onClick={() => window.location.reload()}
                 className="mt-2 px-8 py-2 rounded-full border border-yellow-500/30 text-yellow-500/60 hover:text-yellow-400 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all text-sm mb-6"
               >
                 返回首頁
               </button>
-
-              {/* Moved Reminder to Bottom */}
               <div className="w-full bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-200 text-sm leading-relaxed font-bold">
                   ⚠️ 請務必保留此截圖
@@ -468,14 +399,12 @@ export default function App() {
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes appear { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slide-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .animate-fade-in { animation: fade-in 1s ease-out; }
         .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
         .animate-appear { animation: appear 0.6s ease-out; }
         .animate-slide-up { animation: slide-up 0.5s ease-out; }
-        
         .font-serif {
-          font-family: "STFangsong", "FangSong", "Songti TC", "Noto Serif TC", "PMingLiU", "SimSun", serif;
+          font-family: "Noto Serif TC", "Songti TC", serif;
         }
       `}</style>
     </div>
