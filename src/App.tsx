@@ -13,10 +13,6 @@ const FALLBACK_COMPANIES = [
   "Collective", "Commercial"
 ].sort();
 
-const FALLBACK_PRIZE_POOL = [
-  { name: '參加獎：刮刮樂一張 (現金 200 元)', weight: 100 },
-];
-
 const assignPrize = async (name: string, company: string) => {
   try {
     const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}&company=${encodeURIComponent(company)}`);
