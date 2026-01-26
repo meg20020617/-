@@ -302,48 +302,56 @@ export default function App() {
       )}
 
       {/* RESULT VIEW - FULL SCREEN BLACK COVER */}
-      {view === 'result' && (
-        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
+      {
+        view === 'result' && (
+          <div className="relative z-40 h-[100dvh] w-full flex flex-col text-center animate-fade-in-up">
 
-          <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-40">
+            {/* Main Flex Container using Dynamic Viewport Height */}
+            <div className="fixed inset-0 bg-black flex flex-col z-40 h-[100dvh]">
 
-            <div className="relative z-50 w-full px-6 flex flex-col items-center">
+              {/* Top/Middle Content - Takes available space */}
+              <div className="flex-1 w-full px-6 flex flex-col items-center justify-center min-h-0 overflow-y-auto">
 
-              <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-10 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                恭喜中獎
-              </h2>
+                <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-8 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0">
+                  恭喜中獎
+                </h2>
 
-              {/* Prize Text - Huge */}
-              <div className="w-full my-6">
-                <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
-                  {prize.split('|||').map((line, idx) => (
-                    <span key={idx} className="block">{line}</span>
-                  ))}
+                {/* Prize Text - Huge */}
+                <div className="w-full my-4 shrink-0">
+                  <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
+                    {prize.split('|||').map((line, idx) => (
+                      <span key={idx} className="block">{line}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 mt-6 shrink-0">
+                  <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
+                  <p className="text-yellow-500/80 text-xl">{formData.company}</p>
                 </div>
               </div>
 
-              <div className="space-y-3 mb-12 mt-8">
-                <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
-                <p className="text-yellow-500/80 text-xl">{formData.company}</p>
+              {/* Bottom Footer - Sticky at bottom via Flexbox */}
+              <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-50">
+                <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+                  <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
+                    請截圖此畫面<br />
+                    活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+                  </p>
+                </div>
               </div>
 
-              <div className="absolute bottom-12 w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
-                <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
-                  請截圖此畫面<br />
-                  活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
-                </p>
-              </div>
             </div>
-          </div>
 
-          {/* SCRATCH OVERLAY - FULL SCREEN */}
-          <canvas
-            ref={canvasRef}
-            className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
-                   ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
-          />
-        </div>
-      )}
+            {/* SCRATCH OVERLAY - FULL SCREEN */}
+            <canvas
+              ref={canvasRef}
+              className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
+                     ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
+            />
+          </div>
+        )
+      }
 
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
