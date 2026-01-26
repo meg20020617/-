@@ -9,14 +9,13 @@ export default async function handler(request: Request) {
         const { rows } = await sql`SELECT * FROM signups ORDER BY created_at DESC`;
 
         // Convert to CSV
-        const header = 'ID,Name,Company,Phone,Time\n';
+        const header = 'ID,Name,Company,Time\n';
         const csv = rows.map((row: any) => {
             // Escape commas in fields
             const name = row.name ? `"${row.name.replace(/"/g, '""')}"` : '';
             const company = row.company ? `"${row.company.replace(/"/g, '""')}"` : '';
-            const phone = row.phone ? `"${row.phone}"` : '';
             const time = row.created_at;
-            return `${row.id},${name},${company},${phone},${time}`;
+            return `${row.id},${name},${company},${time}`;
         }).join('\n');
 
         return new Response(header + csv, {

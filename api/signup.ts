@@ -10,7 +10,7 @@ export default async function handler(request: Request) {
     }
 
     try {
-        const { name, company, phone } = await request.json();
+        const { name, company } = await request.json();
 
         if (!name || !company) {
             return new Response('Missing fields', { status: 400 });
@@ -22,14 +22,13 @@ export default async function handler(request: Request) {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
         company VARCHAR(255),
-        phone VARCHAR(255),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
         await sql`
-      INSERT INTO signups (name, company, phone)
-      VALUES (${name}, ${company}, ${phone});
+      INSERT INTO signups (name, company)
+      VALUES (${name}, ${company});
     `;
 
         return new Response(JSON.stringify({ success: true }), {

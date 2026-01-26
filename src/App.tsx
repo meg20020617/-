@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Building2, Phone, Sparkles, Download } from 'lucide-react';
+import { User, Building2, Sparkles, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
@@ -37,19 +37,15 @@ const assignPrize = async (name: string) => {
 };
 
 export default function App() {
-  const [view, setView] = useState('login'); // 'login', 'playing_action', 'scratch', 'result'
+  const [view, setView] = useState('login'); // 'login', 'playing_action', 'result'
   const [formData, setFormData] = useState({
     name: '',
-    company: '',
-    phone: ''
+    company: ''
   });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const scratchContainerRef = useRef<HTMLDivElement>(null);
-  const [isScratched, setIsScratched] = useState(false);
 
   const handleTimeUpdate = () => {
     if (view === 'login' && videoRef.current) {
@@ -63,7 +59,9 @@ export default function App() {
   const handleVideoEnded = () => {
     if (view === 'playing_action') {
       if (videoRef.current) videoRef.current.pause();
-      setView('scratch');
+      // Directly show result instead of scratch
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      setView('result');
     }
   };
 
@@ -122,145 +120,7 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    if (view === 'scratch' && canvasRef.current && scratchContainerRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      const container = scratchContainerRef.current;
-
-      setTimeout(() => {
-        if (!container || !canvas || !ctx) return;
-
-        setIsScratched(false);
-        const rect = container.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-
-        // Draw Scratch Layer - Image
-        const img = new Image();
-        // Use the Lion Logo Image
-        img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
-
-        const drawLayer = () => {
-          ctx.globalCompositeOperation = 'source-over';
-
-          // 1. Fill canvas with a solid base color to ensure opacity (Red/Gold theme)
-          ctx.fillStyle = '#ce1126';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          // 2. Draw pattern/border
-          ctx.strokeStyle = '#fcd34d'; // Gold
-          ctx.lineWidth = 4;
-          ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-          // 3. Draw the Logo centered
-          const aspect = img.width / img.height;
-          let drawWidth = canvas.width * 0.9; // 90% width
-          let drawHeight = drawWidth / aspect;
-
-          if (drawHeight > canvas.height * 0.9) {
-            drawHeight = canvas.height * 0.9;
-            drawWidth = drawHeight * aspect;
-          }
-
-          const x = (canvas.width - drawWidth) / 2;
-          const y = (canvas.height - drawHeight) / 2;
-
-          ctx.drawImage(img, x, y, drawWidth, drawHeight);
-
-          // Reset for scratching
-          ctx.globalCompositeOperation = 'destination-out';
-        };
-
-        if (img.complete) {
-          drawLayer();
-        } else {
-          img.onload = drawLayer;
-          // Fallback if image fails
-          img.onerror = () => {
-            ctx.fillStyle = '#C0C0C0';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '24px serif';
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            ctx.fillText("刮開", canvas.width / 2, canvas.height / 2);
-            ctx.globalCompositeOperation = 'destination-out';
-          };
-        }
-      }, 100);
-
-      let isDrawing = false;
-      let moveCount = 0;
-
-      const getPos = (e: MouseEvent | TouchEvent) => {
-        const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
-        if ('changedTouches' in e) {
-          clientX = e.changedTouches[0].clientX;
-          clientY = e.changedTouches[0].clientY;
-        } else {
-          clientX = (e as MouseEvent).clientX;
-          clientY = (e as MouseEvent).clientY;
-        }
-        return { x: clientX - rect.left, y: clientY - rect.top };
-      };
-
-      const scratch = (x: number, y: number) => {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.arc(x, y, 25, 0, Math.PI * 2);
-        ctx.fill();
-        moveCount++;
-      };
-
-      const checkTransparency = () => {
-        if (!ctx) return;
-        if (isScratched || moveCount < 5) return;
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let transparent = 0;
-        const sampleRate = 32;
-        for (let i = 3; i < imageData.data.length; i += 4 * sampleRate) {
-          if (imageData.data[i] === 0) transparent++;
-        }
-        const totalSampled = (imageData.data.length / 4) / sampleRate;
-
-        if ((transparent / totalSampled) * 100 > 40) {
-          setIsScratched(true);
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-          setTimeout(() => setView('result'), 2000);
-        }
-      };
-
-      const handleStart = (e: any) => { isDrawing = true; const pos = getPos(e); scratch(pos.x, pos.y); };
-      const handleMove = (e: any) => { if (!isDrawing) return; e.preventDefault(); const pos = getPos(e); scratch(pos.x, pos.y); };
-      const handleEnd = () => { isDrawing = false; checkTransparency(); };
-
-      // Touch events need passive: false to prevent scrolling while scratching
-      // React synthetic events don't support passive option easily, using refs
-      // But we are attaching to canvasRef inside useEffect, which uses native addEventListener
-      // So passive: false IS respected there.
-
-      // Wait, in previous step I was using canvasRef.addEventListener.
-      // I am keeping that logic.
-
-      canvas.addEventListener('mousedown', handleStart);
-      canvas.addEventListener('mousemove', handleMove);
-      canvas.addEventListener('mouseup', handleEnd);
-      canvas.addEventListener('touchstart', handleStart, { passive: false });
-      canvas.addEventListener('touchmove', handleMove, { passive: false });
-      canvas.addEventListener('touchend', handleEnd);
-
-      return () => {
-        canvas.removeEventListener('mousedown', handleStart);
-        canvas.removeEventListener('mousemove', handleMove);
-        canvas.removeEventListener('mouseup', handleEnd);
-        canvas.removeEventListener('touchstart', handleStart);
-        canvas.removeEventListener('touchmove', handleMove);
-        canvas.removeEventListener('touchend', handleEnd);
-      };
-    }
-  }, [view]);
+  // Removed useEffect for scratch card logic
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-serif text-white">
@@ -324,14 +184,14 @@ export default function App() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm text-yellow-200 ml-1">姓名 (請填寫 Teams 名稱)</label>
+                <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
                   <input
                     required
                     name="name"
                     type="text"
-                    placeholder="例如: Winnie Lo"
+                    placeholder="例如: 王小明"
                     className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
                     value={formData.name}
                     onChange={handleInputChange}
@@ -339,21 +199,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm text-yellow-200 ml-1">電話號碼</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                  <input
-                    required
-                    name="phone"
-                    type="tel"
-                    placeholder="0912-345-678"
-                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+              {/* Removed Phone input */}
 
               <button
                 type="submit"
@@ -372,78 +218,48 @@ export default function App() {
         <div className="relative z-20 h-full w-full pointer-events-none" />
       )}
 
-      {/* --- 3. Scratch Card Page (Overlay) --- */}
-      {view === 'scratch' && (
-        <div className="relative z-30 h-full w-full flex flex-col items-center justify-center animate-appear">
-          {/* Card Area */}
-          <div className="relative w-72 h-48 md:w-96 md:h-64 bg-transparent ">
+      {/* Removed Scratch Card Page */}
 
-            {/* Prize Underneath */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-              <h3 className="text-yellow-400 text-lg font-bold drop-shadow-md mb-2">恭喜獲得</h3>
-              <p className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-lg">{prize}</p>
-            </div>
-
-            {/* Canvas Overlay */}
-            <div ref={scratchContainerRef} className="absolute inset-0 cursor-pointer overflow-hidden rounded-lg">
-              <canvas ref={canvasRef} className="w-full h-full touch-none" />
-            </div>
-          </div>
-
-          <div className="mt-24 text-center animate-pulse">
-            <p className="text-yellow-200 text-xl font-bold bg-black/50 px-4 py-1 rounded-full">
-              趕快刮開看看結果！
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* --- 4. Result Page --- */}
+      {/* --- 3. Result Page (Pop-up Overlay) --- */}
       {view === 'result' && (
-        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <div key={i} className="absolute w-2 h-2 bg-yellow-400 rounded-full animate-ping" style={{
-                top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-                animationDuration: `${Math.random() * 2 + 1}s`,
-                animationDelay: `${Math.random()}s`
-              }} />
-            ))}
-          </div>
+        <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          {/* Confetti should have fired on mount */}
 
-          <div className="bg-gradient-to-b from-red-900/90 to-black/90 p-8 rounded-3xl border-2 border-yellow-500 shadow-[0_0_60px_rgba(234,179,8,0.4)] max-w-lg w-full">
-            <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+          {/* Semi-transparent Glass Overlay */}
+          <div className="bg-black/80 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500/50 shadow-[0_0_80px_rgba(234,179,8,0.5)] max-w-lg w-full relative overflow-hidden">
 
-            <h2 className="text-3xl font-bold text-yellow-500 mb-2">中獎通知</h2>
-            <div className="bg-red-800/50 p-6 rounded-xl border border-red-700/50 my-6">
-              <p className="text-red-200 text-sm mb-1">恭喜您抽到</p>
-              <p className="text-3xl md:text-4xl font-black text-white break-words">{prize}</p>
-            </div>
+            {/* Spinning Light Effect Behind */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.1)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
 
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              請務必保留此截圖，並於活動結束後，<br />
-              向 <span className="text-yellow-500 font-bold">福委會</span> 出示截圖以領取獎項。
-            </p>
+            <div className="relative z-10">
+              <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
 
-            <div className="mt-8 pt-6 border-t border-gray-700">
-              <div className="grid grid-cols-2 gap-4 text-left text-sm text-gray-400">
-                <div>
-                  <span className="block text-gray-600 text-xs">姓名 (Name)</span>
-                  <span className="text-gray-200">{formData.name}</span>
-                </div>
-                <div>
-                  <span className="block text-gray-600 text-xs">電話 (Phone)</span>
-                  <span className="text-gray-200">{formData.phone}</span>
-                </div>
+              <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">中獎通知</h2>
+
+              <div className="bg-gradient-to-br from-red-900/80 to-red-950/80 p-8 rounded-2xl border border-red-500/30 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
+                <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
+                <p className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 break-words leading-tight drop-shadow-sm">
+                  {prize}
+                </p>
               </div>
-            </div>
 
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-8 text-yellow-500/50 hover:text-yellow-500 text-xs"
-            >
-              返回首頁
-            </button>
+              <div className="space-y-2 mb-8">
+                <p className="text-white text-lg font-bold">{formData.name}</p>
+                <p className="text-yellow-500/80 text-sm">{formData.company}</p>
+              </div>
+
+              <p className="text-gray-400 text-xs leading-relaxed mb-6">
+                請務必保留此截圖，並於活動結束後，<br />
+                向 <span className="text-yellow-500 font-bold">福委會</span> 出示截圖以領取獎項。
+              </p>
+
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-8 py-2 rounded-full border border-yellow-500/30 text-yellow-500/60 hover:text-yellow-400 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all text-sm"
+              >
+                返回首頁
+              </button>
+            </div>
           </div>
         </div>
       )}

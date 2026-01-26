@@ -38,37 +38,38 @@ export default async function handler(request: Request) {
         // 3. Search for the Name
         // Heuristic: Parse lines and look for the english name
         const lines = text.split('\n');
-        const searchName = name.trim().toLowerCase();
+        const searchName = name.trim();
 
         let foundPrize = null;
 
         for (const line of lines) {
             // Check if line contains comma (CSV style) or just look for the name
-            if (!line.toLowerCase().includes(searchName)) continue;
+            if (!line.includes(searchName)) continue; // Case-sensitive better for Chinese? Or loose?
 
             // If line matches, let's parse it carefully
             // Expected format: Unit, Brand, Chinese, English, Prize
-            // Or just a line with the name and prize.
 
             const parts = line.split(/,|，|\t/);
             const cols = parts.map(p => p.trim()).filter(Boolean);
 
-            // We need to find which column is the English Name.
-            // Usually index 3 based on previous examples.
-            // But to be robust, let's see if any column *exactly* matches the search name (case-insensitive)
+            // Heuristic for Chinese Name in Blob Data
+            // We need to find the column that matches input 'searchName' (Chinese)
 
-            const matchIndex = cols.findIndex(c => c.toLowerCase() === searchName);
+            // Usually [2] is Chinese based on previous context (Unit, Brand, Chinese...)
+            // Let's iterate cols and see if any matches
+
+            const matchIndex = cols.findIndex(c => c === searchName || c.replace(/\s/g, '') === searchName.replace(/\s/g, ''));
 
             if (matchIndex !== -1) {
-                // Determine Prize Column. Usually the last one or index 4.
-                // If we found the name at index 3, prize is likely at index 4.
-                // If cols length is > matchIndex + 1, take the next one or the last one.
+                // If match found, look for Prize.
+                // Prize is likely the last column or index 4.
 
-                // Let's assume the prize is the LAST column if it's not the name itself.
+                // If we found the name at index 2, prize is likely at index 4.
+                // Or simply the last valid column.
                 const potentialPrize = cols[cols.length - 1];
 
-                // Sanity check: Prize shouldn't be the name
-                if (potentialPrize.toLowerCase() !== searchName) {
+                // Sanity: Prize shouldn't be the name
+                if (potentialPrize !== searchName) {
                     foundPrize = potentialPrize;
                     break;
                 }
