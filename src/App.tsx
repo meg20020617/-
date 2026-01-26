@@ -311,13 +311,14 @@ export default function App() {
       {/* RESULT VIEW - FULL SCREEN BLACK COVER */}
       {
         view === 'result' && (
-          <div className="relative z-40 h-[100dvh] w-full flex flex-col text-center animate-fade-in-up">
+          // Fixed Wrapper to ensure it covers EVERYTHING
+          <div className="fixed inset-0 z-40 flex flex-col bg-black animate-fade-in-up">
 
-            {/* Main Flex Container using Dynamic Viewport Height */}
-            <div className="fixed inset-0 bg-black flex flex-col z-40 h-[100dvh]">
+            {/* Flex Container for Content */}
+            <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Top/Middle Content - Takes available space */}
-              <div className="flex-1 w-full px-6 flex flex-col items-center justify-center min-h-0 overflow-y-auto">
+              {/* Top/Middle Content - Auto scrollable if needed */}
+              <div className="flex-1 w-full px-6 flex flex-col items-center justify-center overflow-y-auto">
 
                 <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-8 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0">
                   恭喜中獎
@@ -338,8 +339,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bottom Footer - Sticky at bottom via Flexbox */}
-              <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-50">
+              {/* Bottom Footer - Sticky at bottom */}
+              <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-20">
                 <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
                   <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
                     請截圖此畫面<br />
@@ -351,9 +352,10 @@ export default function App() {
             </div>
 
             {/* SCRATCH OVERLAY - FULL SCREEN */}
+            {/* Fixed ensures it stays on screen even if parent flex has issues, causing overlap correctly */}
             <canvas
               ref={canvasRef}
-              className={`absolute inset-0 w-full h-full cursor-pointer touch-none z-[60] transition-colors duration-300 
+              className={`fixed inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
                      ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
             />
           </div>
