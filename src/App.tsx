@@ -24,17 +24,12 @@ const assignPrize = async (name: string, company: string) => {
       const data = await res.json();
       if (data.prize) return data.prize;
     }
+    // If not found, return null explicitly
+    return null;
   } catch (e) {
-    console.error("API Error, falling back to random:", e);
+    console.error("API Error:", e);
+    return null;
   }
-
-  const totalWeight = FALLBACK_PRIZE_POOL.reduce((sum, item) => sum + item.weight, 0);
-  let random = Math.random() * totalWeight;
-  for (const prize of FALLBACK_PRIZE_POOL) {
-    if (random < prize.weight) return prize.name;
-    random -= prize.weight;
-  }
-  return '參加獎：現金 200 元';
 };
 
 export default function App() {
@@ -77,7 +72,7 @@ export default function App() {
   const handleVideoEnded = () => {
     if (view === 'playing_action') {
       if (videoRef.current) videoRef.current.pause();
-      setView('scratch'); // Go to scratch instead of result directly
+      setView('scratch');
     }
   };
 
@@ -107,9 +102,16 @@ export default function App() {
     setLoading(true);
 
     try {
+      // Strict Validation
       const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
-      setPrize(assignedPrize);
 
+      if (!assignedPrize) {
+        setLoading(false);
+        alert("名單中找不到此姓名，請重新輸入");
+        return;
+      }
+
+      setPrize(assignedPrize);
       submitSignup(formData);
 
       setTimeout(() => {
@@ -137,64 +139,64 @@ export default function App() {
     if (view === 'scratch' && canvasRef.current && scratchContainerRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      const container = scratchContainerRef.current;
+      const container = scratchContainerRef.current; // Now full screen container
 
       setTimeout(() => {
         if (!container || !canvas || !ctx) return;
 
         setIsScratched(false);
-        const rect = container.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        // Draw Scratch Layer - Image
-        const img = new Image();
-        img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
-
+        // Draw Full Screen Scratch Layer
         const drawLayer = () => {
           ctx.globalCompositeOperation = 'source-over';
-          // 1. Fill canvas with a solid base color (Red/Gold theme)
-          ctx.fillStyle = '#ce1126';
+          // 1. Fill canvas with a solid base color (Deep Red)
+          ctx.fillStyle = '#ce1126'; // Red
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // 2. Draw pattern/border
-          ctx.strokeStyle = '#fcd34d'; // Gold
-          ctx.lineWidth = 4;
-          ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-          // 3. Draw the Logo centered
-          const aspect = img.width / img.height;
-          let drawWidth = canvas.width * 0.9;
-          let drawHeight = drawWidth / aspect;
-
-          if (drawHeight > canvas.height * 0.9) {
-            drawHeight = canvas.height * 0.9;
-            drawWidth = drawHeight * aspect;
+          // 2. Add some "Gold Dust" or pattern
+          ctx.fillStyle = '#fcd34d';
+          for (let i = 0; i < 80; i++) {
+            ctx.beginPath();
+            ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, Math.random() * 4, 0, Math.PI * 2);
+            ctx.fill();
           }
 
-          const x = (canvas.width - drawWidth) / 2;
-          const y = (canvas.height - drawHeight) / 2;
+          // 3. Center Text / Image
+          const img = new Image();
+          img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
 
-          ctx.drawImage(img, x, y, drawWidth, drawHeight);
+          const finishDraw = () => {
+            const aspect = img.width / img.height;
+            let drawWidth = Math.min(canvas.width * 0.6, 400);
+            let drawHeight = drawWidth / aspect;
 
-          // Text Hint
-          ctx.font = 'bold 20px serif';
-          ctx.fillStyle = '#fcd34d';
-          ctx.textAlign = 'center';
-          ctx.fillText("刮開中大獎", canvas.width / 2, canvas.height - 20);
+            const x = (canvas.width - drawWidth) / 2;
+            const y = (canvas.height - drawHeight) / 2;
 
-          ctx.globalCompositeOperation = 'destination-out';
+            ctx.drawImage(img, x, y, drawWidth, drawHeight);
+
+            // Updated Text
+            ctx.font = 'bold 36px serif';
+            ctx.fillStyle = '#fcd34d';
+            ctx.textAlign = 'center';
+            ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + 80);
+
+            ctx.globalCompositeOperation = 'destination-out';
+          };
+
+          if (img.complete) finishDraw();
+          else img.onload = finishDraw;
         };
 
-        if (img.complete) { drawLayer(); }
-        else { img.onload = drawLayer; }
+        drawLayer();
       }, 100);
 
       let isDrawing = false;
       let moveCount = 0;
 
       const getPos = (e: MouseEvent | TouchEvent) => {
-        const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
         if ('changedTouches' in e) {
           clientX = e.changedTouches[0].clientX;
@@ -203,13 +205,13 @@ export default function App() {
           clientX = (e as MouseEvent).clientX;
           clientY = (e as MouseEvent).clientY;
         }
-        return { x: clientX - rect.left, y: clientY - rect.top };
+        return { x: clientX, y: clientY }; // Full screen coords
       };
 
       const scratch = (x: number, y: number) => {
         if (!ctx) return;
         ctx.beginPath();
-        ctx.arc(x, y, 30, 0, Math.PI * 2); // Bigger brush
+        ctx.arc(x, y, 60, 0, Math.PI * 2); // Big brush for full screen
         ctx.fill();
         moveCount++;
       };
@@ -226,7 +228,7 @@ export default function App() {
         }
         const totalSampled = (imageData.data.length / 4) / sampleRate;
 
-        if ((transparent / totalSampled) * 100 > 35) { // 35% is enough
+        if ((transparent / totalSampled) * 100 > 35) {
           setIsScratched(true);
 
           // Richer Confetti
@@ -235,14 +237,14 @@ export default function App() {
 
           (function frame() {
             confetti({
-              particleCount: 5,
+              particleCount: 7,
               angle: 60,
               spread: 55,
               origin: { x: 0 },
               colors: ['#ff0000', '#ffd700', '#ffffff']
             });
             confetti({
-              particleCount: 5,
+              particleCount: 7,
               angle: 120,
               spread: 55,
               origin: { x: 1 },
@@ -254,7 +256,7 @@ export default function App() {
             }
           }());
 
-          setTimeout(() => setView('result'), 1500);
+          setTimeout(() => setView('result'), 1200);
         }
       };
 
@@ -375,37 +377,28 @@ export default function App() {
         <div className="relative z-20 h-full w-full pointer-events-none" />
       )}
 
-      {/* --- 3. Scratch Card Page (Restored) --- */}
+      {/* --- 3. Scratch Card Page (Full Screen Overlay) --- */}
       {view === 'scratch' && (
-        <div className="relative z-30 h-full w-full flex flex-col items-center justify-center animate-appear">
-          <div className="relative w-80 h-56 md:w-96 md:h-64">
+        <div ref={scratchContainerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black">
 
-            {/* Hidden Result Underneath */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-xl border border-yellow-500/50 flex flex-col items-center justify-center text-center p-4 shadow-2xl">
-              <h3 className="text-yellow-400 text-lg font-bold drop-shadow-md mb-2">恭喜中獎</h3>
-              <p className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-lg">{prize}</p>
-            </div>
-
-            {/* Canvas Overlay */}
-            <div ref={scratchContainerRef} className="absolute inset-0 cursor-pointer overflow-hidden rounded-xl shadow-2xl transform hover:scale-[1.02] transition-transform">
-              <canvas ref={canvasRef} className="w-full h-full touch-none" />
-            </div>
-          </div>
-
-          <div className="mt-12 text-center animate-pulse">
-            <p className="text-yellow-200 text-lg font-bold bg-black/40 px-6 py-2 rounded-full border border-yellow-500/30">
-              👉 請用力刮開螢幕
+          {/* Result Underneath (Full Screen Center) */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-appear">
+            <h3 className="text-yellow-400 text-3xl font-bold drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] mb-6">恭喜中獎</h3>
+            <p className="text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-[0_4px_8px_rgba(0,0,0,1)] bg-black/50 p-6 rounded-3xl border border-yellow-500/30">
+              {prize}
             </p>
           </div>
+
+          {/* Canvas Overlay (Covers Everything) */}
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-pointer touch-none" />
         </div>
       )}
-
 
       {/* --- 4. Result Page (Pop-up Overlay) --- */}
       {view === 'result' && (
         <div className="relative z-40 h-full w-full flex flex-col items-center justify-center p-6 text-center animate-fade-in-up">
           {/* Semi-transparent Glass Overlay */}
-          <div className="bg-black/90 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
+          <div className="bg-black/95 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.6)] max-w-lg w-full relative overflow-hidden">
 
             {/* Spinning Light Effect Behind */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
