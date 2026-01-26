@@ -179,6 +179,22 @@ export default function App() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
+                  <input
+                    required
+                    name="name"
+                    type="text"
+                    placeholder="例如: 王小明"
+                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
@@ -194,22 +210,6 @@ export default function App() {
                       <option key={c} value={c} className="text-black">{c}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                  <input
-                    required
-                    name="name"
-                    type="text"
-                    placeholder="例如: 王小明"
-                    className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                  />
                 </div>
               </div>
 

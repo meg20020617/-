@@ -36,44 +36,51 @@ export default async function handler(request: Request) {
         const result = await mammoth.extractRawText({ buffer });
         const text = result.value;
 
-        // 3. Search for the Name AND Company
-        const lines = text.split('\n');
+        // 3. Search for the Name AND Company using Line Pattern
+        // Debug analysis shows pattern per person (4 lines):
+        // 1. Prize + Unit (e.g. "新光三越3000禮券LEO")
+        // 2. Department/Brand code (e.g. "CR")
+        // 3. Chinese Name (e.g. "楊乃菁")
+        // 4. English Name (e.g. "Jin Yang")
+
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
         const searchName = name.trim();
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
         let foundPrize = null;
 
-        for (const line of lines) {
-            if (!line.includes(searchName)) continue;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
 
-            const parts = line.split(/,|，|\t/);
-            const cols = parts.map(p => p.trim()).filter(Boolean);
+            // Match Chinese Name (Exact match)
+            if (line === searchName) {
+                // Potential match found at index i
+                // Check context. We expect Prize at i-2
+                if (i < 2) continue; // Should have preceding lines
 
-            // Check Name Match (Chinese)
-            const nameMatch = cols.some(c => c === searchName || c.replace(/\s/g, '') === searchName.replace(/\s/g, ''));
+                const prizeLine = lines[i - 2] || "";
+                const deptLine = lines[i - 1] || "";
 
-            if (nameMatch) {
-                // Check Company Match (if provided)
-                // Heuristic: Company is usually col 0 (Unit) or 1 (Brand).
-                // We check if ANY other column (up to index 2 or 3) generally matches the searchCompany.
-                // Or simply check if the line contains the company string (fuzzier but safer for "Publicis" vs "Publicis Groupe")
-
-                let companyMatch = true;
+                // --- Company Validation ---
                 if (searchCompany) {
-                    // Check if 'line' contains the company (case insensitive)
-                    // If dropdown is 'Publicis', it matches 'Publicis Media', 'Publicis Groupe', etc.
-                    if (!line.toLowerCase().includes(searchCompany)) {
-                        companyMatch = false;
+                    const matchInPrize = prizeLine.toLowerCase().includes(searchCompany);
+                    const matchInDept = deptLine.toLowerCase().includes(searchCompany);
+                    // Also check if searchCompany is part of the Unit suffix
+
+                    if (!matchInPrize && !matchInDept) {
+                        continue; // Name found, but Company doesn't match this entry
                     }
                 }
 
-                if (companyMatch) {
-                    const potentialPrize = cols[cols.length - 1];
-                    if (potentialPrize !== searchName) {
-                        foundPrize = potentialPrize;
-                        break;
-                    }
-                }
+                // --- Extract Prize ---
+                // "新光三越3000禮券ReSources" -> Remove "ReSources"
+                // Heuristic: remove trailing English/Symbols
+                // But keep numbers if inside (e.g. 3000)
+                // Regex: remove [a-zA-Z\s&]+ at the END of string
+
+                const cleanPrize = prizeLine.replace(/[a-zA-Z\s&]+$/, '').trim();
+                foundPrize = cleanPrize;
+                break;
             }
         }
 
