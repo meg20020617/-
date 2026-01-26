@@ -60,6 +60,34 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
+  // --- CELEBRATION EFFECT ---
+  // Fires when view switches to 'result'
+  useEffect(() => {
+    if (view === 'result') {
+      // Fire confetti fireworks
+      const duration = 5000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval: any = setInterval(function () {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, [view]);
+
   if (isMaintenance) {
     return (
       <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-white p-6 text-center font-serif">
@@ -172,11 +200,10 @@ export default function App() {
         // Draw Full Screen Scratch Layer
         const drawLayer = () => {
           ctx.globalCompositeOperation = 'source-over';
-          // 1. Fill canvas with a solid base color (Deep Red)
           ctx.fillStyle = '#ce1126'; // Red
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // 2. Add some "Gold Dust" or pattern
+          // Gold Dust
           ctx.fillStyle = '#fcd34d';
           for (let i = 0; i < 80; i++) {
             ctx.beginPath();
@@ -184,7 +211,7 @@ export default function App() {
             ctx.fill();
           }
 
-          // 3. Center Text / Image
+          // Center Text / Image
           const img = new Image();
           img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
 
@@ -192,18 +219,15 @@ export default function App() {
             const aspect = img.width / img.height;
             let drawWidth = Math.min(canvas.width * 0.6, 400);
             let drawHeight = drawWidth / aspect;
-
             const x = (canvas.width - drawWidth) / 2;
             const y = (canvas.height - drawHeight) / 2;
-
             ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
-            // Updated Text
+            // Text
             ctx.font = 'bold 36px serif';
             ctx.fillStyle = '#fcd34d';
             ctx.textAlign = 'center';
             ctx.fillText("請刮出你的中獎結果", canvas.width / 2, y + drawHeight + 80);
-
             ctx.globalCompositeOperation = 'destination-out';
           };
 
@@ -226,13 +250,13 @@ export default function App() {
           clientX = (e as MouseEvent).clientX;
           clientY = (e as MouseEvent).clientY;
         }
-        return { x: clientX, y: clientY }; // Full screen coords
+        return { x: clientX, y: clientY };
       };
 
       const scratch = (x: number, y: number) => {
         if (!ctx) return;
         ctx.beginPath();
-        ctx.arc(x, y, 60, 0, Math.PI * 2); // Big brush for full screen
+        ctx.arc(x, y, 60, 0, Math.PI * 2);
         ctx.fill();
         moveCount++;
       };
@@ -251,33 +275,7 @@ export default function App() {
 
         if ((transparent / totalSampled) * 100 > 35) {
           setIsScratched(true);
-
-          // Richer Confetti
-          const duration = 3000;
-          const end = Date.now() + duration;
-
-          (function frame() {
-            confetti({
-              particleCount: 7,
-              angle: 60,
-              spread: 55,
-              origin: { x: 0 },
-              colors: ['#ff0000', '#ffd700', '#ffffff']
-            });
-            confetti({
-              particleCount: 7,
-              angle: 120,
-              spread: 55,
-              origin: { x: 1 },
-              colors: ['#ff0000', '#ffd700', '#ffffff']
-            });
-
-            if (Date.now() < end) {
-              requestAnimationFrame(frame);
-            }
-          }());
-
-          setTimeout(() => setView('result'), 1200);
+          setTimeout(() => setView('result'), 800);
         }
       };
 
@@ -341,7 +339,7 @@ export default function App() {
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
               <p className="text-yellow-100/80">今日好運攏總來</p>
-              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v3.0.0 (Debug)</p>
+              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v3.1.0 (Mobile UI)</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
@@ -406,12 +404,11 @@ export default function App() {
           {/* Result Underneath (Full Screen Center) */}
           <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-appear">
             <h3 className="text-yellow-400 text-3xl font-bold drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] mb-6">恭喜中獎</h3>
-            <p className="text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-[0_4px_8px_rgba(0,0,0,1)] bg-black/50 p-6 rounded-3xl border border-yellow-500/30">
+            <p className="text-3xl md:text-5xl font-black text-white leading-normal drop-shadow-[0_4px_8px_rgba(0,0,0,1)] bg-black/50 p-6 rounded-3xl border border-yellow-500/30">
               {prize}
             </p>
           </div>
 
-          {/* Canvas Overlay (Covers Everything) */}
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-pointer touch-none" />
         </div>
       )}
@@ -425,14 +422,17 @@ export default function App() {
             {/* Spinning Light Effect Behind */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_180deg,transparent_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none" />
 
-            <div className="relative z-10">
+            <div className="relative z-10 flex flex-col items-center">
               <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
 
               <h2 className="text-3xl font-bold text-yellow-500 mb-4 tracking-wider">恭喜中獎</h2>
 
-              <div className="bg-gradient-to-br from-red-900/90 to-red-950/90 p-8 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
+              {/* Prize Box - Added max-w and tighter padding for mobile safety */}
+              <div className="w-full bg-gradient-to-br from-red-900/90 to-red-950/90 p-6 md:p-8 rounded-2xl border border-red-500/50 my-6 shadow-inner transform hover:scale-[1.02] transition-transform">
                 <p className="text-red-200 text-sm mb-2 tracking-widest">CHINESE NEW YEAR 2026</p>
-                <p className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 break-words leading-tight drop-shadow-sm">
+
+                {/* Font Size Adjusted: 3xl on mobile, 5xl on desktop. Leading Normal. */}
+                <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-500 break-words w-full leading-normal drop-shadow-sm pb-1">
                   {prize}
                 </p>
               </div>
@@ -442,7 +442,15 @@ export default function App() {
                 <p className="text-yellow-500/80 text-sm">{formData.company}</p>
               </div>
 
-              <div className="bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3 mb-6">
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-8 py-2 rounded-full border border-yellow-500/30 text-yellow-500/60 hover:text-yellow-400 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all text-sm mb-6"
+              >
+                返回首頁
+              </button>
+
+              {/* Moved Reminder to Bottom */}
+              <div className="w-full bg-yellow-900/30 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-200 text-sm leading-relaxed font-bold">
                   ⚠️ 請務必保留此截圖
                 </p>
@@ -450,13 +458,6 @@ export default function App() {
                   活動結束後，請向 <span className="text-yellow-400 font-bold">福委會</span> 出示以領取獎項。
                 </p>
               </div>
-
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-4 px-8 py-2 rounded-full border border-yellow-500/30 text-yellow-500/60 hover:text-yellow-400 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all text-sm"
-              >
-                返回首頁
-              </button>
             </div>
           </div>
         </div>
