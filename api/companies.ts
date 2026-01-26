@@ -1,5 +1,5 @@
 export const config = {
-    runtime: 'nodejs',
+    runtime: 'edge',
 };
 
 const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
