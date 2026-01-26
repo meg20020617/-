@@ -334,6 +334,7 @@ export default function App() {
                 className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain"
               />
               <p className="text-yellow-100/80">今日好運攏總來</p>
+              <p className="text-gray-600 text-[10px] mt-2 font-mono">system v2.1.0</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
