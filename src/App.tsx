@@ -269,18 +269,17 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: min-h-full allow scroll if content > screen. flex-center + my-auto for vertical centering.
-        <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in text-base overflow-y-auto">
-          {/* Card: my-auto to center visually when space permits. shrink-0 prevents compressing. */}
-          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto shrink-0">
+        <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in text-base">
+          {/* LOGIN CARD: Max Height Constraint + Internal Scroll if needed */}
+          <div className="w-[90%] max-w-md max-h-[90dvh] overflow-y-auto bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group flex flex-col my-auto shrink-0">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
-            <div className="text-center mb-4">
-              {/* SHRUNK LOGO significantly to save vertical space and prevent overflow */}
-              <img src={logoUrl} className="w-[140px] max-w-full mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
+            <div className="text-center mb-4 shrink-0">
+              {/* Logo: Small on mobile (100px), larger on desktop is fine but keeping small for safety */}
+              <img src={logoUrl} className="w-[120px] max-w-full mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4 overflow-y-auto px-1">
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
                 <div className="relative">
@@ -307,7 +306,7 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
+              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black shrink-0">
                 {loading ? '資料確認中...' : '簽到並開抽！'}
               </button>
             </form>
@@ -318,47 +317,46 @@ export default function App() {
       {
         view === 'result' && (
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
-            <div className="relative w-full h-full flex flex-col z-10">
+            <div className="relative w-full h-[100dvh] flex flex-col z-10 p-4 pb-8 overflow-hidden">
 
-              {/* 1. TOP SECTION: Logo + Title (Shifted UP) */}
-              <div className="shrink-0 pt-5 pb-2 flex flex-col items-center justify-center">
+              {/* FLEX LAYOUT: Space Between Top, Middle, Bottom */}
+
+              {/* 1. TOP: Logo + Title */}
+              <div className="shrink-0 pt-4 flex flex-col items-center justify-center">
                 <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
                 <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-1">
                   恭喜中獎
                 </h2>
               </div>
 
-              {/* 2. MIDDLE SECTION: Prize & Number Ball (Expanded) */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-0 px-4">
+              {/* 2. MIDDLE: Balanced Content (Prize + Ball) */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
                 {/* Number Ball */}
                 {prizeId && (
-                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-4">
+                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-6 shrink-0">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
                       <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                     </div>
                   </div>
                 )}
 
-                {/* Huge Prize Text with GAP below to separate from Name */}
-                <div className="w-full mb-8">
+                {/* Huge Prize Text */}
+                <div className="w-full shrink-0">
                   <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-3">
                     {prize.split('|||').map((line, idx) => (
-                      <span key={idx} className="block max-w-full break-words">{line}</span>
+                      <span key={idx} className="block max-w-full break-words px-2">{line}</span>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* 3. BOTTOM SECTION: Name/Company (Separated slightly from text above) */}
-              <div className="shrink-0 w-full flex flex-col items-center pb-24">
-                <div className="opacity-90 mb-4 space-y-2">
+              {/* 3. BOTTOM: Name + Footer */}
+              <div className="shrink-0 w-full flex flex-col items-center">
+                <div className="opacity-90 mb-6 space-y-2">
                   <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
                   <p className="text-yellow-500/80 text-lg">{formData.company}</p>
                 </div>
-              </div>
 
-              {/* Footer: Absolute Bottom */}
-              <div className="absolute bottom-0 left-0 w-full p-4 pb-8 flex justify-center bg-transparent z-20 pointer-events-none">
                 <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
                   <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
                     請截圖此畫面<br />
