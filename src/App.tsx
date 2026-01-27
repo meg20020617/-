@@ -73,20 +73,24 @@ export default function App() {
     }
   }, [view, isWinningTriggered]);
 
-  // Lock Body Scroll when Result and Canvas NOT ready (i.e. Scratching phase)
+  // PERMANENT SCROLL LOCK for Result View
+  // User request: "Delete auto-unlock. Lock throughout."
   useEffect(() => {
-    if (view === 'result' && !isCanvasReady) {
+    if (view === 'result') {
       document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      // ALSO prevent touchmove on body to stop bounce
+      const preventDefault = (e: Event) => e.preventDefault();
+      document.body.addEventListener('touchmove', preventDefault, { passive: false });
+      return () => {
+        document.body.style.overflow = '';
+        document.body.removeEventListener('touchmove', preventDefault);
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    };
-  }, [view, isCanvasReady]);
+  }, [view]);
+
+  // LOGIN SCROLL LOCK? 
+  // Probably better to allow scroll on login IF needed (e.g. keyboard open).
+  // But centered view should fit.
 
   if (isMaintenance) {
     return (
@@ -255,6 +259,7 @@ export default function App() {
   }, [view]);
 
   return (
+    // Body is hard locked in useEffect, but this div container handles size
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none">
       <video
         ref={videoRef}
@@ -267,13 +272,13 @@ export default function App() {
         onEnded={handleVideoEnded}
       />
 
-      {/* Login Overlay - Fixed Full Screen */}
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: STRICT centering.
+        // Login View: Flex Column Center with margin-auto to be super safe
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
-          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
+          {/* Card: my-auto forces it to vertical center even if flex fails */}
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
@@ -320,48 +325,48 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              <div className="flex-1 w-full overflow-y-auto">
-                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-6 pb-32">
+              {/* Content Wrapper: NO SCROLL. Center everything. */}
+              <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
+                <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
 
-                  {/* Shrink Logo */}
-                  <img src={logoUrl} className="w-[80px] mb-4 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
+                  {/* Tiny Logo */}
+                  <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
 
-                  {/* Shrink Title */}
-                  <h2 className="text-3xl font-extrabold text-yellow-400 mb-4 tracking-wider drop-shadow-md shrink-0">
+                  {/* Tiny Title */}
+                  <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
                     恭喜中獎
                   </h2>
 
-                  {/* ITEM NUMBER BALL - Prominent */}
+                  {/* Huge Number Ball */}
                   {prizeId && (
-                    <div className="mb-4 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
+                    <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
                         <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Prize Text - Keep Large/Prominent */}
-                  <div className="w-full my-4 shrink-0 px-2">
-                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-2">
+                  {/* Huge Prize Text */}
+                  <div className="w-full shrink-0">
+                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
                       {prize.split('|||').map((line, idx) => (
                         <span key={idx} className="block max-w-full break-words">{line}</span>
                       ))}
                     </div>
                   </div>
 
-                  {/* Shrink Name/Company Info */}
-                  <div className="space-y-1 mt-6 shrink-0 opacity-90">
+                  {/* Small Name/Company */}
+                  <div className="shrink-0 opacity-90">
                     <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
                     <p className="text-yellow-500/80 text-lg">{formData.company}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Footer - Sticky at bottom */}
-              <div className="absolute bottom-0 left-0 w-full p-6 pb-8 flex justify-center bg-gradient-to-t from-black via-black/95 to-transparent z-20 pointer-events-none">
-                <div className="w-[90%] max-w-md bg-yellow-900/20 border border-yellow-500/10 rounded-lg p-2 backdrop-blur-sm pointer-events-auto">
-                  {/* Shrink Reminder Text */}
-                  <p className="text-white font-bold text-xs leading-relaxed tracking-wide opacity-80">
+              {/* Footer: Tiny Reminder */}
+              <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
+                <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
+                  <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
                     請截圖此畫面<br />
                     活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
                   </p>
@@ -370,7 +375,7 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY - Added 'touch-none' explicitly back */}
+            {/* SCRATCH OVERLAY */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
