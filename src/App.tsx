@@ -57,11 +57,9 @@ export default function App() {
   // Celebration Fireworks
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
-      // High Z-Index + Origin from Top
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 99999 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-      // Immediate blast
       confetti({ ...defaults, particleCount: 150, origin: { y: 0.6 } });
 
       const interval: any = setInterval(function () {
@@ -74,6 +72,21 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [view, isWinningTriggered]);
+
+  // Lock Body Scroll when Result and Canvas NOT ready (i.e. Scratching phase)
+  useEffect(() => {
+    if (view === 'result' && !isCanvasReady) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [view, isCanvasReady]);
 
   if (isMaintenance) {
     return (
@@ -242,8 +255,6 @@ export default function App() {
   }, [view]);
 
   return (
-    // REVERTED to stricter 'touch-none' to GUARANTEE scratch works first. 
-    // Optimization: Shrink UI fonts so content fits without needing much scroll.
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none">
       <video
         ref={videoRef}
@@ -260,7 +271,7 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: STRICT centering. No extra padding. Just h-[100dvh] center.
+        // Login View: STRICT centering.
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
           <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
@@ -309,11 +320,7 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Main Content - No scroll needed if we shrink fonts effectively, but keep overflow-auto just in case */}
-              {/* If scratching is priority, wrapper is touch-none via parent. 
-                  Once ready, we can allow scroll via pointer-events-none on canvas. */}
               <div className="flex-1 w-full overflow-y-auto">
-                {/* STRICT Centering again, but with shrinking fonts */}
                 <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-6 pb-32">
 
                   {/* Shrink Logo */}
@@ -363,11 +370,11 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY - Works reliably because of parent touch-none */}
+            {/* SCRATCH OVERLAY - Added 'touch-none' explicitly back */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
-                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer'}`}
+                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer touch-none'}`}
             />
           </div>
         )
