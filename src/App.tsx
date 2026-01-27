@@ -245,7 +245,8 @@ export default function App() {
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none overscroll-none">
       <video
         ref={videoRef}
-        className="fixed top-0 left-0 w-full h-full object-cover z-0"
+        // Changed to object-contain to ensure text is visible and not cropped
+        className="fixed top-0 left-0 w-full h-full object-contain z-0"
         src="https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E7%9B%B4%E5%BC%8F%E6%8A%BD%E7%8D%8E%E5%B0%81%E9%9D%A2%E5%8B%95%E6%85%8B.mp4"
         playsInline
         autoPlay
@@ -254,7 +255,8 @@ export default function App() {
         onEnded={handleVideoEnded}
       />
 
-      <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
+      {/* Login Overlay - Fixed Full Screen */}
+      <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
         <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 overflow-y-auto animate-fade-in">
@@ -305,9 +307,9 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Scrollable Main Content */}
-              <div className="flex-1 w-full overflow-y-auto flex flex-col items-center">
-                {/* Min-h-full to vertically center if content is short */}
+              {/* Scrollable Main Content - Removed 'flex items-center' to avoid flexbox center clipping when overflow */}
+              <div className="flex-1 w-full overflow-y-auto">
+                {/* Inner Container: Min Height Full to Center if small, Expand if Large */}
                 <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-10 pb-48">
 
                   <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
@@ -316,13 +318,12 @@ export default function App() {
                     恭喜中獎
                   </h2>
 
-                  {/* ITEM NUMBER BALL - INSERTED HERE */}
+                  {/* ITEM NUMBER BALL - Just the Ball, removed "No" Text */}
                   {prizeId && (
                     <div className="mb-6 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-2 border-yellow-100 ring-2 ring-yellow-500/30">
                         <span className="text-black font-black text-2xl font-sans drop-shadow-sm">{prizeId}</span>
                       </div>
-                      <span className="text-yellow-500/80 text-xs mt-2 font-bold tracking-widest uppercase">No.</span>
                     </div>
                   )}
 
@@ -341,7 +342,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bottom Footer - Absolute to Float over content */}
+              {/* Bottom Footer - Sticky at bottom */}
               <div className="absolute bottom-0 left-0 w-full p-6 pb-12 flex justify-center bg-gradient-to-t from-black via-black/95 to-transparent z-20 pointer-events-none">
                 <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm pointer-events-auto">
                   <p className="text-white font-bold text-base leading-relaxed tracking-wide">
