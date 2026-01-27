@@ -290,7 +290,6 @@ export default function App() {
 
       {view === 'login' && (
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in text-base">
-          {/* LOGIN CARD */}
           <div className="w-[90%] max-w-md max-h-[90dvh] overflow-y-auto bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group flex flex-col my-auto shrink-0">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
@@ -348,9 +347,9 @@ export default function App() {
 
               {/* MIDDLE: Prize + Ball (Animated) */}
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
-                {/* Number Ball with Pop-In Animation and Shine */}
+                {/* Number Ball - Conditional Animation trigger */}
                 {prizeId && (
-                  <div className="flex flex-col items-center animate-reveal-ball mb-6 shrink-0 relative">
+                  <div className={`flex flex-col items-center mb-6 shrink-0 relative ${isWinningTriggered ? 'animate-reveal-ball' : ''}`}>
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30 relative overflow-hidden group">
                       {/* Internal Shine Effect */}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent opacity-0 animate-shine" />
@@ -369,12 +368,12 @@ export default function App() {
                 </div>
               </div>
 
-              {/* BOTTOM: Name + Footer (Tight Spacing) */}
+              {/* BOTTOM: Name + Footer (Extremely Tight Spacing) */}
               <div className="shrink-0 w-full flex flex-col items-center">
-                {/* Reduced space-y and margin for tighter feel */}
-                <div className="opacity-90 mb-4 space-y-0 leading-tight">
+                <div className="opacity-90 mb-4 flex flex-col items-center leading-none">
                   <p className="text-yellow-100 text-2xl font-bold mb-1">{formData.name}</p>
-                  <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+                  {/* Company Name SMALLER (text-base) */}
+                  <p className="text-yellow-500/80 text-base font-medium">{formData.company}</p>
                 </div>
 
                 <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
@@ -399,13 +398,18 @@ export default function App() {
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        /* Pop & Rotate Reveal */
+        
+        /* Updated Reveal: Start from visible scale but perform a "Pop" */
+        /* Initially (0%) it should be whatever state it is before winning (static). 
+           Actually, before winning, the class isn't applied. 
+           So when class applied (0%): We want it to start from "somewhere" and animate to "here".
+           To make it "Pop", let's scale it up and down. */
         @keyframes reveal-ball {
-          0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+          0% { transform: scale(0.5) rotate(-180deg); opacity: 0; }
           60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
           100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        /* Shine Sweep */
+
         @keyframes shine {
           0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
           50% { opacity: 1; }
