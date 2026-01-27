@@ -269,51 +269,46 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: Center viewport, then constrain Aspect Ratio to mix video (9:16)
-        <div className="relative z-20 w-full h-[100dvh] flex items-center justify-center p-6 animate-fade-in">
-          {/* Aspect Ratio Constraint: Matches vertical video so it centers "on the video content" not just the screen */}
-          <div className="w-full h-full max-h-[100dvh] aspect-[9/16] max-w-md flex flex-col justify-center">
-
-            <div className="w-full bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
-              <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
-                <Download className="w-4 h-4" />
-              </a>
-              <div className="text-center mb-6">
-                <img src={logoUrl} className="w-full max-w-[200px] max-h-[150px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
-              </div>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                    <input required name="name" type="text" placeholder="例如: 王小明" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.name} onChange={handleInputChange} />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm text-yellow-200 ml-1">英文姓名（請填寫Teams名稱）</label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                    <input required name="englishName" type="text" placeholder="例如: Daaming Wang" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.englishName} onChange={handleInputChange} />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
-                    <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
-                      <option value="" disabled>請選擇公司</option>
-                      {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
-                  {loading ? '資料確認中...' : '簽到並開抽！'}
-                </button>
-              </form>
+        <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
+          {/* Card: Removed Aspect Ratio wrapper. Center with simple Flex + my-auto */}
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
+            <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
+              <Download className="w-4 h-4" />
+            </a>
+            <div className="text-center mb-6">
+              <img src={logoUrl} className="w-full max-w-[200px] max-h-[150px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">中文姓名</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
+                  <input required name="name" type="text" placeholder="例如: 王小明" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.name} onChange={handleInputChange} />
+                </div>
+              </div>
 
+              <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">英文姓名（請填寫Teams名稱）</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
+                  <input required name="englishName" type="text" placeholder="例如: Daaming Wang" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.englishName} onChange={handleInputChange} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
+                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
+                    <option value="" disabled>請選擇公司</option>
+                    {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
+                {loading ? '資料確認中...' : '簽到並開抽！'}
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -323,10 +318,10 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* 1. TOP SECTION: Logo + Title (SIDE BY SIDE ROW) */}
-              <div className="shrink-0 pt-10 pb-4 flex flex-row items-center justify-center gap-4">
+              {/* 1. TOP SECTION: Logo + Title (STACKED AGAIN) */}
+              <div className="shrink-0 pt-10 pb-4 flex flex-col items-center justify-center">
                 <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-                <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md">
+                <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-2">
                   恭喜中獎
                 </h2>
               </div>
