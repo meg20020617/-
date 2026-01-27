@@ -269,14 +269,16 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
-          {/* Card: Removed Aspect Ratio wrapper. Center with simple Flex + my-auto */}
-          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
+        // Login View: min-h-full allow scroll if content > screen. flex-center + my-auto for vertical centering.
+        <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in text-base overflow-y-auto">
+          {/* Card: my-auto to center visually when space permits. shrink-0 prevents compressing. */}
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto shrink-0">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
-            <div className="text-center mb-6">
-              <img src={logoUrl} className="w-full max-w-[200px] max-h-[150px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
+            <div className="text-center mb-4">
+              {/* SHRUNK LOGO significantly to save vertical space and prevent overflow */}
+              <img src={logoUrl} className="w-[140px] max-w-full mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1">
@@ -318,27 +320,27 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* 1. TOP SECTION: Logo + Title (STACKED AGAIN) */}
-              <div className="shrink-0 pt-10 pb-4 flex flex-col items-center justify-center">
+              {/* 1. TOP SECTION: Logo + Title (Shifted UP) */}
+              <div className="shrink-0 pt-5 pb-2 flex flex-col items-center justify-center">
                 <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-                <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-2">
+                <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-1">
                   恭喜中獎
                 </h2>
               </div>
 
-              {/* 2. MIDDLE SECTION: Prize & Number Ball (FLEX GROW to take space) */}
+              {/* 2. MIDDLE SECTION: Prize & Number Ball (Expanded) */}
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 px-4">
                 {/* Number Ball */}
                 {prizeId && (
-                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-6">
+                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-4">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
                       <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                     </div>
                   </div>
                 )}
 
-                {/* Huge Prize Text */}
-                <div className="w-full">
+                {/* Huge Prize Text with GAP below to separate from Name */}
+                <div className="w-full mb-8">
                   <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-3">
                     {prize.split('|||').map((line, idx) => (
                       <span key={idx} className="block max-w-full break-words">{line}</span>
@@ -347,9 +349,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3. BOTTOM SECTION: Name/Company + Footer (Pushed Down) */}
+              {/* 3. BOTTOM SECTION: Name/Company (Separated slightly from text above) */}
               <div className="shrink-0 w-full flex flex-col items-center pb-24">
-                <div className="opacity-90 mb-4">
+                <div className="opacity-90 mb-4 space-y-2">
                   <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
                   <p className="text-yellow-500/80 text-lg">{formData.company}</p>
                 </div>
