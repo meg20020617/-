@@ -242,10 +242,10 @@ export default function App() {
   }, [view]);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none overscroll-none">
+    // REMOVED 'touch-none' from here to fix scroll locking on mobile
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white overscroll-none">
       <video
         ref={videoRef}
-        // Changed to object-contain to ensure text is visible and not cropped
         className="fixed top-0 left-0 w-full h-full object-contain z-0"
         src="https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E7%9B%B4%E5%BC%8F%E6%8A%BD%E7%8D%8E%E5%B0%81%E9%9D%A2%E5%8B%95%E6%85%8B.mp4"
         playsInline
@@ -307,22 +307,22 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Scrollable Main Content - Removed 'flex items-center' to avoid flexbox center clipping when overflow */}
-              <div className="flex-1 w-full overflow-y-auto">
-                {/* Inner Container: Min Height Full to Center if small, Expand if Large */}
-                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-10 pb-48">
+              {/* Scrollable Main Content - touch-auto allows scrolling here */}
+              <div className="flex-1 w-full overflow-y-auto touch-auto">
+                {/* Inner Container: Padding Top to push content down, Padding Bottom to clear footer */}
+                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center pt-24 pb-48">
 
-                  <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+                  <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
 
                   <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0 max-w-full break-words">
                     恭喜中獎
                   </h2>
 
-                  {/* ITEM NUMBER BALL - Just the Ball, removed "No" Text */}
+                  {/* ITEM NUMBER BALL */}
                   {prizeId && (
-                    <div className="mb-6 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-2 border-yellow-100 ring-2 ring-yellow-500/30">
-                        <span className="text-black font-black text-2xl font-sans drop-shadow-sm">{prizeId}</span>
+                    <div className="mb-6 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
+                        <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                       </div>
                     </div>
                   )}
@@ -354,10 +354,11 @@ export default function App() {
 
             </div>
 
+            {/* SCRATCH OVERLAY - touch-none ONLY when active */}
             <canvas
               ref={canvasRef}
-              className={`fixed inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
-                     ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'}`}
+              className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
+                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer touch-none'}`}
             />
           </div>
         )
