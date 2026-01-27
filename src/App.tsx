@@ -269,7 +269,9 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
+        // Login View: STRICT centering logic re-added
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
+          {/* Card: my-auto forces it to vertical center */}
           <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
@@ -298,6 +300,7 @@ export default function App() {
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
+                  {/* Select tag fixed self-closing issue */}
                   <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
                     <option value="" disabled>請選擇公司</option>
                     {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -317,39 +320,47 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
-                <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
+              {/* LAYOUT REFACTOR: 3 Sections */}
 
-                  <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
+              {/* 1. TOP SECTION: Logo + Title */}
+              <div className="shrink-0 pt-8 pb-4 flex flex-col items-center justify-center">
+                <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+                <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-2">
+                  恭喜中獎
+                </h2>
+              </div>
 
-                  <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
-                    恭喜中獎
-                  </h2>
-
-                  {prizeId && (
-                    <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
-                        <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="w-full shrink-0">
-                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
-                      {prize.split('|||').map((line, idx) => (
-                        <span key={idx} className="block max-w-full break-words">{line}</span>
-                      ))}
+              {/* 2. MIDDLE SECTION: Prize & Number Ball (FLEX GROW to take space) */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 px-4">
+                {/* Number Ball */}
+                {prizeId && (
+                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-4">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
+                      <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                     </div>
                   </div>
+                )}
 
-                  <div className="shrink-0 opacity-90">
-                    <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
-                    <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+                {/* Huge Prize Text */}
+                <div className="w-full">
+                  <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
+                    {prize.split('|||').map((line, idx) => (
+                      <span key={idx} className="block max-w-full break-words">{line}</span>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
+              {/* 3. BOTTOM SECTION: Name/Company + Footer (Pushed Down) */}
+              <div className="shrink-0 w-full flex flex-col items-center pb-24">
+                <div className="opacity-90 mb-4">
+                  <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+                  <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+                </div>
+              </div>
+
+              {/* Footer: Absolute Bottom */}
+              <div className="absolute bottom-0 left-0 w-full p-4 pb-8 flex justify-center bg-transparent z-20 pointer-events-none">
                 <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
                   <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
                     請截圖此畫面<br />
@@ -360,7 +371,7 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY - REVERTED: Removed 'pointer-events-none' from ready state. Kept touch-none always. */}
+            {/* SCRATCH OVERLAY */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
