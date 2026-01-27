@@ -74,7 +74,6 @@ export default function App() {
   }, [view, isWinningTriggered]);
 
   // PERMANENT SCROLL LOCK for Result View
-  // User request: "Delete auto-unlock. Lock throughout."
   useEffect(() => {
     if (view === 'result') {
       document.body.style.overflow = 'hidden';
@@ -87,10 +86,6 @@ export default function App() {
       };
     }
   }, [view]);
-
-  // LOGIN SCROLL LOCK? 
-  // Probably better to allow scroll on login IF needed (e.g. keyboard open).
-  // But centered view should fit.
 
   if (isMaintenance) {
     return (
@@ -259,7 +254,6 @@ export default function App() {
   }, [view]);
 
   return (
-    // Body is hard locked in useEffect, but this div container handles size
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none">
       <video
         ref={videoRef}
@@ -275,9 +269,7 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: Flex Column Center with margin-auto to be super safe
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
-          {/* Card: my-auto forces it to vertical center even if flex fails */}
           <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
@@ -306,86 +298,80 @@ export default function App() {
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
-                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
-                    <option value="" disabled>請選擇公司</option>
-                    {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
-                  </select>
-                </div>
+                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange} />
+                  <option value="" disabled>請選擇公司</option>
+                  {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
+                </select>
               </div>
-              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
-                {loading ? '資料確認中...' : '簽到並開抽！'}
-              </button>
-            </form>
           </div>
-        </div>
-      )}
+          <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
+            {loading ? '資料確認中...' : '簽到並開抽！'}
+          </button>
+        </form>
+          </div>
+        </div >
+      )
+}
 
-      {
-        view === 'result' && (
-          <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
-            <div className="relative w-full h-full flex flex-col z-10">
+{
+  view === 'result' && (
+    <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
+      <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Content Wrapper: NO SCROLL. Center everything. */}
-              <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
-                <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
+        <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
+          <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
 
-                  {/* Tiny Logo */}
-                  <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
+            <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
 
-                  {/* Tiny Title */}
-                  <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
-                    恭喜中獎
-                  </h2>
+            <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
+              恭喜中獎
+            </h2>
 
-                  {/* Huge Number Ball */}
-                  {prizeId && (
-                    <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
-                        <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Huge Prize Text */}
-                  <div className="w-full shrink-0">
-                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
-                      {prize.split('|||').map((line, idx) => (
-                        <span key={idx} className="block max-w-full break-words">{line}</span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Small Name/Company */}
-                  <div className="shrink-0 opacity-90">
-                    <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
-                    <p className="text-yellow-500/80 text-lg">{formData.company}</p>
-                  </div>
+            {prizeId && (
+              <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
+                  <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                 </div>
               </div>
+            )}
 
-              {/* Footer: Tiny Reminder */}
-              <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
-                <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
-                  <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
-                    請截圖此畫面<br />
-                    活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
-                  </p>
-                </div>
+            <div className="w-full shrink-0">
+              <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
+                {prize.split('|||').map((line, idx) => (
+                  <span key={idx} className="block max-w-full break-words">{line}</span>
+                ))}
               </div>
-
             </div>
 
-            {/* SCRATCH OVERLAY */}
-            <canvas
-              ref={canvasRef}
-              className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
-                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer touch-none'}`}
-            />
+            <div className="shrink-0 opacity-90">
+              <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+              <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+            </div>
           </div>
-        )
-      }
+        </div>
 
-      <style>{`
+        <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
+          <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
+            <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
+              請截圖此畫面<br />
+              活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* SCRATCH OVERLAY - REVERTED: Removed 'pointer-events-none' from ready state. Kept touch-none always. */}
+      <canvas
+        ref={canvasRef}
+        className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
+                     ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'} cursor-pointer touch-none`}
+      />
+    </div>
+  )
+}
+
+<style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 1s ease-out; }
@@ -393,6 +379,6 @@ export default function App() {
         .animate-bounce-slow { animation: bounce 2s infinite; }
         .font-serif { font-family: "Noto Serif TC", "Songti TC", serif; }
       `}</style>
-    </div>
+    </div >
   );
 }
