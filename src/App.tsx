@@ -129,7 +129,7 @@ export default function App() {
       }
 
       setPrize(data.prize);
-      if (data.id) setPrizeId(data.id); // Store Item ID
+      if (data.id) setPrizeId(data.id);
 
       submitSignup(formData);
 
@@ -159,14 +159,11 @@ export default function App() {
       if (!ctx) return;
 
       const dpr = window.devicePixelRatio || 1;
-      // Use max screen size to be safe against address bar collapse
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
 
-      // Scale context to ensure drawing operations use logical pixels but render at high DPI
       ctx.scale(dpr, dpr);
 
-      // Init Draw using logical dimensions (window.innerWidth/Height)
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#ce1126';
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
@@ -189,7 +186,6 @@ export default function App() {
         const y = (window.innerHeight - drawHeight) / 2;
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
-        // Dynamic Font Size for Mobile
         const fontSize = Math.min(window.innerWidth * 0.08, 42);
         ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
@@ -261,15 +257,12 @@ export default function App() {
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: Use min-h-[100dvh] and flex-col to ensure centering but allow scroll if overflow
         <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 overflow-y-auto animate-fade-in">
-          {/* Container Width 90% */}
           <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
             <div className="text-center mb-6">
-              {/* Max Width constraint to prevent overflow */}
               <img src={logoUrl} className="w-full max-w-[200px] max-h-[150px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -307,27 +300,32 @@ export default function App() {
         </div>
       )}
 
-      {/* RESULT VIEW - FULL SCREEN BLACK COVER */}
       {
         view === 'result' && (
-          // Fixed Wrapper to ensure it covers EVERYTHING
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
-
-            {/* Content Container - Use flex-col and overflow-y-auto */}
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Scrollable Main Content - 'my-auto' to vertically center simple content, but allow scroll if tall */}
-              <div className="flex-1 w-full overflow-y-auto flex flex-col items-center py-10">
-                <div className="w-[90%] max-w-md mx-auto my-auto flex flex-col items-center">
+              {/* Scrollable Main Content */}
+              <div className="flex-1 w-full overflow-y-auto flex flex-col items-center">
+                {/* Min-h-full to vertically center if content is short */}
+                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-10 pb-48">
 
-                  {/* Logo at Result top */}
                   <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
 
                   <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0 max-w-full break-words">
                     恭喜中獎
                   </h2>
 
-                  {/* Prize Text - Huge */}
+                  {/* ITEM NUMBER BALL - INSERTED HERE */}
+                  {prizeId && (
+                    <div className="mb-6 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-2 border-yellow-100 ring-2 ring-yellow-500/30">
+                        <span className="text-black font-black text-2xl font-sans drop-shadow-sm">{prizeId}</span>
+                      </div>
+                      <span className="text-yellow-500/80 text-xs mt-2 font-bold tracking-widest uppercase">No.</span>
+                    </div>
+                  )}
+
                   <div className="w-full my-4 shrink-0">
                     <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
                       {prize.split('|||').map((line, idx) => (
@@ -336,19 +334,16 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="space-y-3 mt-6 shrink-0">
+                  <div className="space-y-3 mt-8 shrink-0">
                     <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
                     <p className="text-yellow-500/80 text-xl">{formData.company}</p>
-                    {prizeId && (
-                      <p className="text-yellow-600/60 text-sm mt-2 font-mono">No. {prizeId}</p>
-                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Footer - Sticky at bottom */}
-              <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-20">
-                <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+              {/* Bottom Footer - Absolute to Float over content */}
+              <div className="absolute bottom-0 left-0 w-full p-6 pb-12 flex justify-center bg-gradient-to-t from-black via-black/95 to-transparent z-20 pointer-events-none">
+                <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm pointer-events-auto">
                   <p className="text-white font-bold text-base leading-relaxed tracking-wide">
                     請截圖此畫面<br />
                     活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
@@ -358,7 +353,6 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY - FULL SCREEN */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 
@@ -373,6 +367,7 @@ export default function App() {
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 1s ease-out; }
         .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
+        .animate-bounce-slow { animation: bounce 2s infinite; }
         .font-serif { font-family: "Noto Serif TC", "Songti TC", serif; }
       `}</style>
     </div>
