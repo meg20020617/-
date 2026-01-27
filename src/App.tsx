@@ -298,80 +298,79 @@ export default function App() {
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-5 h-5 text-yellow-500 pointer-events-none" />
-                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange} />
-                  <option value="" disabled>請選擇公司</option>
-                  {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
-                </select>
-              </div>
-          </div>
-          <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
-            {loading ? '資料確認中...' : '簽到並開抽！'}
-          </button>
-        </form>
-          </div>
-        </div >
-      )
-}
-
-{
-  view === 'result' && (
-    <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
-      <div className="relative w-full h-full flex flex-col z-10">
-
-        <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
-          <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
-
-            <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
-
-            <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
-              恭喜中獎
-            </h2>
-
-            {prizeId && (
-              <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
-                  <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
+                  <select required name="company" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 pr-4 text-white font-serif appearance-none" value={formData.company} onChange={handleInputChange}>
+                    <option value="" disabled>請選擇公司</option>
+                    {companies.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
+                  </select>
                 </div>
               </div>
-            )}
+              <button type="submit" disabled={loading} className="w-full mt-6 font-bold py-3 rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 via-yellow-500  to-yellow-600 text-black">
+                {loading ? '資料確認中...' : '簽到並開抽！'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
-            <div className="w-full shrink-0">
-              <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
-                {prize.split('|||').map((line, idx) => (
-                  <span key={idx} className="block max-w-full break-words">{line}</span>
-                ))}
+      {
+        view === 'result' && (
+          <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
+            <div className="relative w-full h-full flex flex-col z-10">
+
+              <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
+                <div className="w-[90%] max-w-md flex flex-col items-center justify-center space-y-4">
+
+                  <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
+
+                  <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md shrink-0">
+                    恭喜中獎
+                  </h2>
+
+                  {prizeId && (
+                    <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
+                        <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="w-full shrink-0">
+                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-2">
+                      {prize.split('|||').map((line, idx) => (
+                        <span key={idx} className="block max-w-full break-words">{line}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 opacity-90">
+                    <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+                    <p className="text-yellow-500/80 text-lg">{formData.company}</p>
+                  </div>
+                </div>
               </div>
+
+              <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
+                <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
+                  <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
+                    請截圖此畫面<br />
+                    活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+                  </p>
+                </div>
+              </div>
+
             </div>
 
-            <div className="shrink-0 opacity-90">
-              <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
-              <p className="text-yellow-500/80 text-lg">{formData.company}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full p-4 pb-12 flex justify-center bg-transparent z-20 pointer-events-none">
-          <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
-            <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
-              請截圖此畫面<br />
-              活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* SCRATCH OVERLAY - REVERTED: Removed 'pointer-events-none' from ready state. Kept touch-none always. */}
-      <canvas
-        ref={canvasRef}
-        className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
+            {/* SCRATCH OVERLAY - REVERTED: Removed 'pointer-events-none' from ready state. Kept touch-none always. */}
+            <canvas
+              ref={canvasRef}
+              className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
                      ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'} cursor-pointer touch-none`}
-      />
-    </div>
-  )
-}
+            />
+          </div>
+        )
+      }
 
-<style>{`
+      <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 1s ease-out; }
@@ -379,6 +378,6 @@ export default function App() {
         .animate-bounce-slow { animation: bounce 2s infinite; }
         .font-serif { font-family: "Noto Serif TC", "Songti TC", serif; }
       `}</style>
-    </div >
+    </div>
   );
 }
