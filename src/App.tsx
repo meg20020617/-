@@ -4,14 +4,39 @@ import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
 
-// Initial fallback
-const FALLBACK_COMPANIES = [
+// Priority List for Sorting
+const COMPANY_PRIORITY = [
+  "LEO", "Starcom", "Zenith", "Performics", "Digitas",
+  "MSL", "Spark", "Prodigious", "Saatchi & Saatchi",
+  "Collective", "PMX", "Growth Intelligence", "Core"
+];
+
+// Helper to normalize and sort
+const sortCompanies = (list: string[]) => {
+  // Normalize priority map for case-insensitive matching if needed, 
+  // but let's stick to exact or close matches.
+  // We'll create a map of "normalized key" -> index
+  const pMap = new Map(COMPANY_PRIORITY.map((c, i) => [c.toLowerCase().replace(/[^a-z0-9]/g, ''), i]));
+
+  return [...list].sort((a, b) => {
+    const aKey = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const bKey = b.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const aIdx = pMap.has(aKey) ? pMap.get(aKey)! : 999;
+    const bIdx = pMap.has(bKey) ? pMap.get(bKey)! : 999;
+
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return a.localeCompare(b);
+  });
+};
+
+const FALLBACK_COMPANIES = sortCompanies([
   "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
   "Performics", "MSL", "PMX", "Saatchi & Saatchi",
   "ReSources", "Publicis", "Human Resource", "Finance",
   "Administration", "Management", "Growth Intelligence",
-  "Collective", "Commercial"
-].sort();
+  "Collective", "Commercial", "Spark", "Core"
+]);
 
 const assignPrize = async (name: string, company: string) => {
   try {
@@ -38,7 +63,13 @@ export default function App() {
   const [prizeId, setPrizeId] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // State for Scratch Completion
   const [isWinningTriggered, setIsWinningTriggered] = useState(false);
+
+  // State for Ball Animation (Delayed)
+  const [isBallAnimating, setIsBallAnimating] = useState(false);
+
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const logoUrl = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/publicis_WG.png";
@@ -48,56 +79,62 @@ export default function App() {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && data.companies && data.companies.length > 0) {
-          setCompanies(data.companies);
+          setCompanies(sortCompanies(data.companies));
         }
       })
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // Celebration Fireworks & Ball Gold Dust
+  // Celebration Logic
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
+      // 1. Start Background Confetti IMMEDIATELY (Lasts 2.5s)
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 99999 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-      // 1. Immediate "Gold Dust" Burst for the Ball (Centered approx where the ball is)
-      // Ball is roughly at y=0.3 to 0.4
-      confetti({
-        particleCount: 80,
-        spread: 100,
-        origin: { y: 0.35 },
-        colors: ['#FCD34D', '#F59E0B', '#FFFFFF'], // Gold & White
-        startVelocity: 45,
-        gravity: 1.2,
-        scalar: 0.8,
-        disableForReducedMotion: true
-      });
-
-      // 2. Reduced duration background confetti (2.5 seconds)
       const duration = 2500;
       const animationEnd = Date.now() + duration;
 
       const interval: any = setInterval(function () {
         const timeLeft = animationEnd - Date.now();
-
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-
+        if (timeLeft <= 0) return clearInterval(interval);
         const particleCount = 40 * (timeLeft / duration);
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
 
-      return () => clearInterval(interval);
+      // 2. DELAY Ball Animation until Confetti finishes (approx 2.5s)
+      const timeout = setTimeout(() => {
+        setIsBallAnimating(true);
+      }, duration); // Wait for confetti to roughly finish
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
   }, [view, isWinningTriggered]);
+
+  // Separate Effect for Ball Gold Dust (Triggered when isBallAnimating becomes true)
+  useEffect(() => {
+    if (isBallAnimating) {
+      // Gold Dust Burst on Ball
+      confetti({
+        particleCount: 100,
+        spread: 120,
+        origin: { y: 0.35 },
+        colors: ['#FCD34D', '#F59E0B', '#FFFFFF'],
+        startVelocity: 55,
+        gravity: 1.0,
+        scalar: 1.0,
+        disableForReducedMotion: true
+      });
+    }
+  }, [isBallAnimating]);
 
   // PERMANENT SCROLL LOCK for Result View
   useEffect(() => {
     if (view === 'result') {
       document.body.style.overflow = 'hidden';
-      // ALSO prevent touchmove on body to stop bounce
       const preventDefault = (e: Event) => e.preventDefault();
       document.body.addEventListener('touchmove', preventDefault, { passive: false });
       return () => {
@@ -349,9 +386,9 @@ export default function App() {
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
                 {/* Number Ball - Conditional Animation trigger */}
                 {prizeId && (
-                  <div className={`flex flex-col items-center mb-6 shrink-0 relative ${isWinningTriggered ? 'animate-reveal-ball' : ''}`}>
+                  <div className={`flex flex-col items-center mb-6 shrink-0 relative ${isBallAnimating ? 'animate-reveal-ball' : ''}`}>
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30 relative overflow-hidden group">
-                      {/* Internal Shine Effect */}
+                      {/* Internal Shine Effect (Only when animating/visible) */}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent opacity-0 animate-shine" />
                       <span className="text-black font-black text-3xl font-sans drop-shadow-sm relative z-10">{prizeId}</span>
                     </div>
@@ -368,11 +405,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* BOTTOM: Name + Footer (Extremely Tight Spacing) */}
+              {/* BOTTOM: Name + Footer */}
               <div className="shrink-0 w-full flex flex-col items-center">
                 <div className="opacity-90 mb-4 flex flex-col items-center leading-none">
                   <p className="text-yellow-100 text-2xl font-bold mb-1">{formData.name}</p>
-                  {/* Company Name SMALLER (text-base) */}
                   <p className="text-yellow-500/80 text-base font-medium">{formData.company}</p>
                 </div>
 
@@ -399,11 +435,7 @@ export default function App() {
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Updated Reveal: Start from visible scale but perform a "Pop" */
-        /* Initially (0%) it should be whatever state it is before winning (static). 
-           Actually, before winning, the class isn't applied. 
-           So when class applied (0%): We want it to start from "somewhere" and animate to "here".
-           To make it "Pop", let's scale it up and down. */
+        /* Start from SCALED DOWN (0.5), Rotate 180 -> Scale Up -> Rotate 0 */
         @keyframes reveal-ball {
           0% { transform: scale(0.5) rotate(-180deg); opacity: 0; }
           60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
