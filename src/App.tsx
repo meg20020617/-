@@ -54,21 +54,41 @@ export default function App() {
       .catch(err => console.error("Failed to fetch companies:", err));
   }, []);
 
-  // Celebration Fireworks
+  // Celebration Fireworks & Ball Gold Dust
   useEffect(() => {
     if (view === 'result' && isWinningTriggered) {
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 99999 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-      confetti({ ...defaults, particleCount: 150, origin: { y: 0.6 } });
+      // 1. Immediate "Gold Dust" Burst for the Ball (Centered approx where the ball is)
+      // Ball is roughly at y=0.3 to 0.4
+      confetti({
+        particleCount: 80,
+        spread: 100,
+        origin: { y: 0.35 },
+        colors: ['#FCD34D', '#F59E0B', '#FFFFFF'], // Gold & White
+        startVelocity: 45,
+        gravity: 1.2,
+        scalar: 0.8,
+        disableForReducedMotion: true
+      });
+
+      // 2. Reduced duration background confetti (2.5 seconds)
+      const duration = 2500;
+      const animationEnd = Date.now() + duration;
 
       const interval: any = setInterval(function () {
-        const particleCount = 50;
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 40 * (timeLeft / duration);
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
 
-      setTimeout(() => clearInterval(interval), 5000);
       return () => clearInterval(interval);
     }
   }, [view, isWinningTriggered]);
@@ -270,13 +290,12 @@ export default function App() {
 
       {view === 'login' && (
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in text-base">
-          {/* LOGIN CARD: Max Height Constraint + Internal Scroll if needed */}
+          {/* LOGIN CARD */}
           <div className="w-[90%] max-w-md max-h-[90dvh] overflow-y-auto bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group flex flex-col my-auto shrink-0">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
             <div className="text-center mb-4 shrink-0">
-              {/* Logo: Small on mobile (100px), larger on desktop is fine but keeping small for safety */}
               <img src={logoUrl} className="w-[120px] max-w-full mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
             <form onSubmit={handleLogin} className="space-y-4 overflow-y-auto px-1">
@@ -319,9 +338,7 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-[100dvh] flex flex-col z-10 p-4 pb-8 overflow-hidden">
 
-              {/* FLEX LAYOUT: Space Between Top, Middle, Bottom */}
-
-              {/* 1. TOP: Logo + Title */}
+              {/* TOP: Logo + Title */}
               <div className="shrink-0 pt-4 flex flex-col items-center justify-center">
                 <img src={logoUrl} className="w-[80px] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
                 <h2 className="text-3xl font-extrabold text-yellow-400 tracking-wider drop-shadow-md mt-1">
@@ -329,13 +346,15 @@ export default function App() {
                 </h2>
               </div>
 
-              {/* 2. MIDDLE: Balanced Content (Prize + Ball) */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
-                {/* Number Ball */}
+              {/* MIDDLE: Prize + Ball (Animated) */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
+                {/* Number Ball with Pop-In Animation and Shine */}
                 {prizeId && (
-                  <div className="flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform mb-6 shrink-0">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
-                      <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
+                  <div className="flex flex-col items-center animate-reveal-ball mb-6 shrink-0 relative">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30 relative overflow-hidden group">
+                      {/* Internal Shine Effect */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent opacity-0 animate-shine" />
+                      <span className="text-black font-black text-3xl font-sans drop-shadow-sm relative z-10">{prizeId}</span>
                     </div>
                   </div>
                 )}
@@ -350,10 +369,11 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3. BOTTOM: Name + Footer */}
+              {/* BOTTOM: Name + Footer (Tight Spacing) */}
               <div className="shrink-0 w-full flex flex-col items-center">
-                <div className="opacity-90 mb-6 space-y-2">
-                  <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+                {/* Reduced space-y and margin for tighter feel */}
+                <div className="opacity-90 mb-4 space-y-0 leading-tight">
+                  <p className="text-yellow-100 text-2xl font-bold mb-1">{formData.name}</p>
                   <p className="text-yellow-500/80 text-lg">{formData.company}</p>
                 </div>
 
@@ -367,7 +387,6 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
@@ -380,9 +399,24 @@ export default function App() {
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        /* Pop & Rotate Reveal */
+        @keyframes reveal-ball {
+          0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+          60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        /* Shine Sweep */
+        @keyframes shine {
+          0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateX(100%) skewX(-15deg); opacity: 0; }
+        }
+
         .animate-fade-in { animation: fade-in 1s ease-out; }
         .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
-        .animate-bounce-slow { animation: bounce 2s infinite; }
+        .animate-reveal-ball { animation: reveal-ball 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-shine { animation: shine 1.5s ease-out infinite; }
+        
         .font-serif { font-family: "Noto Serif TC", "Songti TC", serif; }
       `}</style>
     </div>
