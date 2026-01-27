@@ -242,7 +242,9 @@ export default function App() {
   }, [view]);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white overscroll-none">
+    // REVERTED to stricter 'touch-none' to GUARANTEE scratch works first. 
+    // Optimization: Shrink UI fonts so content fits without needing much scroll.
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none">
       <video
         ref={videoRef}
         className="fixed top-0 left-0 w-full h-full object-contain z-0"
@@ -258,7 +260,7 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        // Login View: Use h-[100dvh] (strict height) to ensure strict centering
+        // Login View: STRICT centering. No extra padding. Just h-[100dvh] center.
         <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
           <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
@@ -307,48 +309,52 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Scrollable Main Content */}
-              {/* DISABLE scroll while scratching (isCanvasReady=false) to ensure scratch works */}
-              <div
-                className={`flex-1 w-full ${isCanvasReady ? 'overflow-y-auto touch-pan-y' : 'overflow-hidden touch-none'}`}
-              >
-                {/* Inner Container: Padding Top to push content down, Padding Bottom to clear footer */}
-                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center pt-24 pb-48">
+              {/* Main Content - No scroll needed if we shrink fonts effectively, but keep overflow-auto just in case */}
+              {/* If scratching is priority, wrapper is touch-none via parent. 
+                  Once ready, we can allow scroll via pointer-events-none on canvas. */}
+              <div className="flex-1 w-full overflow-y-auto">
+                {/* STRICT Centering again, but with shrinking fonts */}
+                <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center justify-center py-6 pb-32">
 
-                  <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
+                  {/* Shrink Logo */}
+                  <img src={logoUrl} className="w-[80px] mb-4 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0" />
 
-                  <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0 max-w-full break-words">
+                  {/* Shrink Title */}
+                  <h2 className="text-3xl font-extrabold text-yellow-400 mb-4 tracking-wider drop-shadow-md shrink-0">
                     恭喜中獎
                   </h2>
 
-                  {/* ITEM NUMBER BALL */}
+                  {/* ITEM NUMBER BALL - Prominent */}
                   {prizeId && (
-                    <div className="mb-6 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
+                    <div className="mb-4 flex flex-col items-center animate-bounce-slow transform hover:scale-110 transition-transform shrink-0">
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30">
                         <span className="text-black font-black text-3xl font-sans drop-shadow-sm">{prizeId}</span>
                       </div>
                     </div>
                   )}
 
-                  <div className="w-full my-4 shrink-0">
-                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
+                  {/* Prize Text - Keep Large/Prominent */}
+                  <div className="w-full my-4 shrink-0 px-2">
+                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-2">
                       {prize.split('|||').map((line, idx) => (
-                        <span key={idx} className="block max-w-full break-words px-2">{line}</span>
+                        <span key={idx} className="block max-w-full break-words">{line}</span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-3 mt-8 shrink-0">
-                    <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
-                    <p className="text-yellow-500/80 text-xl">{formData.company}</p>
+                  {/* Shrink Name/Company Info */}
+                  <div className="space-y-1 mt-6 shrink-0 opacity-90">
+                    <p className="text-yellow-100 text-2xl font-bold">{formData.name}</p>
+                    <p className="text-yellow-500/80 text-lg">{formData.company}</p>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Footer - Sticky at bottom */}
-              <div className="absolute bottom-0 left-0 w-full p-6 pb-12 flex justify-center bg-gradient-to-t from-black via-black/95 to-transparent z-20 pointer-events-none">
-                <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm pointer-events-auto">
-                  <p className="text-white font-bold text-base leading-relaxed tracking-wide">
+              <div className="absolute bottom-0 left-0 w-full p-6 pb-8 flex justify-center bg-gradient-to-t from-black via-black/95 to-transparent z-20 pointer-events-none">
+                <div className="w-[90%] max-w-md bg-yellow-900/20 border border-yellow-500/10 rounded-lg p-2 backdrop-blur-sm pointer-events-auto">
+                  {/* Shrink Reminder Text */}
+                  <p className="text-white font-bold text-xs leading-relaxed tracking-wide opacity-80">
                     請截圖此畫面<br />
                     活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
                   </p>
@@ -357,11 +363,11 @@ export default function App() {
 
             </div>
 
-            {/* SCRATCH OVERLAY - touch-none ONLY when active */}
+            {/* SCRATCH OVERLAY - Works reliably because of parent touch-none */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
-                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer touch-none'}`}
+                     ${isCanvasReady ? 'bg-transparent pointer-events-none' : 'bg-[#ce1126] cursor-pointer'}`}
             />
           </div>
         )
