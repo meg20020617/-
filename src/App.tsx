@@ -4,24 +4,33 @@ import confetti from 'canvas-confetti';
 
 const IDLE_LOOP_END = 5.0;
 
-// Priority List for Sorting
+// Priority List for Sorting (User Ordered)
+// Handling strict order + potential typos mappings
 const COMPANY_PRIORITY = [
   "LEO", "Starcom", "Zenith", "Performics", "Digitas",
   "MSL", "Spark", "Prodigious", "Saatchi & Saatchi",
-  "Collective", "PMX", "Growth Intelligence", "Core"
+  "Collective", "PMX", "Growth Intelligence", "Core", "Management"
 ];
 
 // Helper to normalize and sort
 const sortCompanies = (list: string[]) => {
-  // Normalize priority map for case-insensitive matching if needed, 
-  // but let's stick to exact or close matches.
-  // We'll create a map of "normalized key" -> index
-  const pMap = new Map(COMPANY_PRIORITY.map((c, i) => [c.toLowerCase().replace(/[^a-z0-9]/g, ''), i]));
+  // Map normalized keys to priority index
+  const pMap = new Map();
+  COMPANY_PRIORITY.forEach((c, i) => {
+    pMap.set(c.toLowerCase().replace(/[^a-z0-9]/g, ''), i);
+  });
+
+  // Handing specific typo mappings if the API returns them differently
+  // User input: "performis" -> performics, "Predigious" -> prodigious, "GrowthIntelligenth" -> growthintelligence
+  pMap.set("performis", pMap.get("performics"));
+  pMap.set("predigious", pMap.get("prodigious"));
+  pMap.set("growthintelligenth", pMap.get("growthintelligence"));
 
   return [...list].sort((a, b) => {
     const aKey = a.toLowerCase().replace(/[^a-z0-9]/g, '');
     const bKey = b.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+    // Default low priority for unknown items
     const aIdx = pMap.has(aKey) ? pMap.get(aKey)! : 999;
     const bIdx = pMap.has(bKey) ? pMap.get(bKey)! : 999;
 
@@ -105,7 +114,7 @@ export default function App() {
       // 2. DELAY Ball Animation until Confetti finishes (approx 2.5s)
       const timeout = setTimeout(() => {
         setIsBallAnimating(true);
-      }, duration); // Wait for confetti to roughly finish
+      }, duration);
 
       return () => {
         clearInterval(interval);
@@ -114,10 +123,9 @@ export default function App() {
     }
   }, [view, isWinningTriggered]);
 
-  // Separate Effect for Ball Gold Dust (Triggered when isBallAnimating becomes true)
+  // Separate Effect for Ball Gold Dust 
   useEffect(() => {
     if (isBallAnimating) {
-      // Gold Dust Burst on Ball
       confetti({
         particleCount: 100,
         spread: 120,
@@ -131,14 +139,18 @@ export default function App() {
     }
   }, [isBallAnimating]);
 
-  // PERMANENT SCROLL LOCK for Result View
+  // PERMANENT SCROLL LOCK for Result View & Canvas Fixes
   useEffect(() => {
     if (view === 'result') {
       document.body.style.overflow = 'hidden';
+      // Prevent bounces on iOS
+      document.body.style.overscrollBehavior = 'none';
+
       const preventDefault = (e: Event) => e.preventDefault();
       document.body.addEventListener('touchmove', preventDefault, { passive: false });
       return () => {
         document.body.style.overflow = '';
+        document.body.style.overscrollBehavior = '';
         document.body.removeEventListener('touchmove', preventDefault);
       };
     }
@@ -311,7 +323,7 @@ export default function App() {
   }, [view]);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none">
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white touch-none select-none">
       <video
         ref={videoRef}
         className="fixed top-0 left-0 w-full h-full object-contain z-0"
@@ -372,7 +384,7 @@ export default function App() {
       {
         view === 'result' && (
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
-            <div className="relative w-full h-[100dvh] flex flex-col z-10 p-4 pb-8 overflow-hidden">
+            <div className="relative w-full h-[100dvh] flex flex-col z-10 p-4 pb-8 overflow-hidden justify-between">
 
               {/* TOP: Logo + Title */}
               <div className="shrink-0 pt-4 flex flex-col items-center justify-center">
@@ -384,13 +396,13 @@ export default function App() {
 
               {/* MIDDLE: Prize + Ball (Animated) */}
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
-                {/* Number Ball - Conditional Animation trigger */}
+                {/* Number Ball - Shrink to w-16 h-16 (64px) */}
                 {prizeId && (
                   <div className={`flex flex-col items-center mb-6 shrink-0 relative ${isBallAnimating ? 'animate-reveal-ball' : ''}`}>
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30 relative overflow-hidden group">
-                      {/* Internal Shine Effect (Only when animating/visible) */}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-[0_0_20px_rgba(253,224,71,0.5)] flex items-center justify-center border-4 border-yellow-100 ring-2 ring-yellow-500/30 relative overflow-hidden group">
+                      {/* Internal Shine Effect */}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent opacity-0 animate-shine" />
-                      <span className="text-black font-black text-3xl font-sans drop-shadow-sm relative z-10">{prizeId}</span>
+                      <span className="text-black font-black text-2xl font-sans drop-shadow-sm relative z-10">{prizeId}</span>
                     </div>
                   </div>
                 )}
@@ -412,10 +424,11 @@ export default function App() {
                   <p className="text-yellow-500/80 text-base font-medium">{formData.company}</p>
                 </div>
 
-                <div className="w-[90%] max-w-md bg-yellow-900/10 border border-yellow-500/5 rounded p-2 backdrop-blur-sm pointer-events-auto">
-                  <p className="text-white font-bold text-[10px] leading-relaxed tracking-wide opacity-60">
+                {/* Footer Box: Amber BG + White Text + Larger Text */}
+                <div className="w-[90%] max-w-md bg-amber-600 border border-yellow-300 rounded-lg p-3 backdrop-blur-sm pointer-events-auto shadow-lg shadow-amber-900/50">
+                  <p className="text-white font-bold text-xs md:text-sm leading-relaxed tracking-wide">
                     請截圖此畫面<br />
-                    活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
+                    活動結束後請向<span className="text-yellow-200 underline decoration-yellow-200/50 underline-offset-2">福委會</span>出示截圖以領取獎項
                   </p>
                 </div>
               </div>
@@ -425,7 +438,7 @@ export default function App() {
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full z-50 transition-colors duration-300 
-                     ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'} cursor-pointer touch-none`}
+                     ${isCanvasReady ? 'bg-transparent' : 'bg-[#ce1126]'} cursor-pointer touch-none select-none`}
             />
           </div>
         )
@@ -435,7 +448,6 @@ export default function App() {
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Start from SCALED DOWN (0.5), Rotate 180 -> Scale Up -> Rotate 0 */
         @keyframes reveal-ball {
           0% { transform: scale(0.5) rotate(-180deg); opacity: 0; }
           60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
