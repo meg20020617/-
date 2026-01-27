@@ -54,9 +54,12 @@ export default async function handler(request: Request) {
             const comp = row[9];
 
             if (comp && comp !== '無' && comp.length > 1) {
-                const cleanComp = comp.replace(/['"]/g, '').trim();
+                // Fix for dirty data (e.g., "張簡建呈Performics")
+                // Remove Chinese characters and leading spaces
+                const cleanComp = comp.replace(/[\u4e00-\u9fa5]/g, '').trim();
+
                 // Filter out obviously non-company strings if needed
-                if (cleanComp && cleanComp !== '-') {
+                if (cleanComp && cleanComp !== '-' && cleanComp.length > 1) {
                     companies.add(cleanComp);
                 }
             }

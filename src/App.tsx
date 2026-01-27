@@ -15,11 +15,10 @@ const FALLBACK_COMPANIES = [
 
 const assignPrize = async (name: string, company: string) => {
   try {
-    // Logic remains: Compare Company then Chinese Name
     const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}&company=${encodeURIComponent(company)}`);
     if (res.ok) {
       const data = await res.json();
-      if (data.prize) return data.prize;
+      return data; // Returns { prize, id }
     }
     return null;
   } catch (e) {
@@ -33,10 +32,10 @@ export default function App() {
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
-  // Added englishName
   const [formData, setFormData] = useState({ name: '', englishName: '', company: '' });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
+  const [prizeId, setPrizeId] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isWinningTriggered, setIsWinningTriggered] = useState(false);
@@ -121,16 +120,17 @@ export default function App() {
     setLoading(true);
 
     try {
-      // Comparison Logic: Still uses Chinese Name + Company
-      const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
-      if (!assignedPrize || assignedPrize.startsWith("DEBUG:")) {
+      const data = await assignPrize(formData.name.trim(), formData.company);
+
+      if (!data || !data.prize || (typeof data.prize === 'string' && data.prize.startsWith("DEBUG:"))) {
         setLoading(false);
         alert("找不到該姓名，請重新輸入！");
         return;
       }
 
-      setPrize(assignedPrize);
-      // Submit includes English Name now
+      setPrize(data.prize);
+      if (data.id) setPrizeId(data.id); // Store Item ID
+
       submitSignup(formData);
 
       setTimeout(() => {
@@ -158,9 +158,6 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
       const dpr = window.devicePixelRatio || 1;
       // Use max screen size to be safe against address bar collapse
       canvas.width = window.innerWidth * dpr;
@@ -172,36 +169,31 @@ export default function App() {
       // Init Draw using logical dimensions (window.innerWidth/Height)
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#ce1126';
-      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight); // logical size
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
       ctx.fillStyle = '#fcd34d';
       for (let i = 0; i < 80; i++) {
         ctx.beginPath();
-        // Use logical dimensions
         ctx.arc(Math.random() * window.innerWidth, Math.random() * window.innerHeight, Math.random() * 4, 0, Math.PI * 2);
         ctx.fill();
       }
 
       const img = new Image();
-      // Logo on Scratch Card (Cover) remains same? Or should update?
-      // User said "Lion logo all change to this". So I update here too.
       img.src = logoUrl;
 
       const finishDraw = () => {
         const aspect = img.width / img.height;
-        // Logical width
-        let drawWidth = Math.min(window.innerWidth * 0.5, 300); // Slightly smaller since new logo might be different ratio
+        let drawWidth = Math.min(window.innerWidth * 0.5, 300);
         let drawHeight = drawWidth / aspect;
         const x = (window.innerWidth - drawWidth) / 2;
         const y = (window.innerHeight - drawHeight) / 2;
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
-        // Dynamic Font Size for Mobile - Larger and Wider
+        // Dynamic Font Size for Mobile
         const fontSize = Math.min(window.innerWidth * 0.08, 42);
         ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
-        // Add letter spacing (Increased to 20px)
         if ('letterSpacing' in ctx) {
           (ctx as any).letterSpacing = "20px";
         }
@@ -235,8 +227,6 @@ export default function App() {
         ctx.fill();
         moveCount++;
 
-        // AGGRESSIVE FIREWORKS TRIGGER
-        // Fire on 10th move
         if (!isWinningTriggered && moveCount > 10) {
           setIsWinningTriggered(true);
         }
@@ -271,15 +261,16 @@ export default function App() {
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        <div className="relative z-20 flex flex-col items-center justify-center h-full animate-fade-in">
-          {/* Reduced Width Container (90%) */}
-          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
+        // Login View: Use min-h-[100dvh] and flex-col to ensure centering but allow scroll if overflow
+        <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 overflow-y-auto animate-fade-in">
+          {/* Container Width 90% */}
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
             <div className="text-center mb-6">
-              <img src={logoUrl} className="w-full max-w-[200px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
-              {/* Removed '今日好運攏總來' */}
+              {/* Max Width constraint to prevent overflow */}
+              <img src={logoUrl} className="w-full max-w-[200px] max-h-[150px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1">
@@ -290,7 +281,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Added English Name Input */}
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">英文姓名（請填寫Teams名稱）</label>
                 <div className="relative">
@@ -323,37 +313,41 @@ export default function App() {
           // Fixed Wrapper to ensure it covers EVERYTHING
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
 
-            {/* Flex Container for Content */}
+            {/* Content Container - Use flex-col and overflow-y-auto */}
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Top/Middle Content - Auto scrollable if needed */}
-              <div className="flex-1 w-[90%] mx-auto flex flex-col items-center justify-center overflow-y-auto">
+              {/* Scrollable Main Content - 'my-auto' to vertically center simple content, but allow scroll if tall */}
+              <div className="flex-1 w-full overflow-y-auto flex flex-col items-center py-10">
+                <div className="w-[90%] max-w-md mx-auto my-auto flex flex-col items-center">
 
-                {/* Added Logo to Result top */}
-                <img src={logoUrl} className="w-[120px] mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+                  {/* Logo at Result top */}
+                  <img src={logoUrl} className="w-[120px] max-w-full mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
 
-                <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0">
-                  恭喜中獎
-                </h2>
+                  <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0 max-w-full break-words">
+                    恭喜中獎
+                  </h2>
 
-                {/* Prize Text - Huge */}
-                <div className="w-full my-4 shrink-0">
-                  <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
-                    {prize.split('|||').map((line, idx) => (
-                      <span key={idx} className="block">{line}</span>
-                    ))}
+                  {/* Prize Text - Huge */}
+                  <div className="w-full my-4 shrink-0">
+                    <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm pb-1 flex flex-col items-center gap-3">
+                      {prize.split('|||').map((line, idx) => (
+                        <span key={idx} className="block max-w-full break-words px-2">{line}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-3 mt-6 shrink-0">
-                  <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
-                  <p className="text-yellow-500/80 text-xl">{formData.company}</p>
+                  <div className="space-y-3 mt-6 shrink-0">
+                    <p className="text-yellow-100 text-3xl font-bold">{formData.name}</p>
+                    <p className="text-yellow-500/80 text-xl">{formData.company}</p>
+                    {prizeId && (
+                      <p className="text-yellow-600/60 text-sm mt-2 font-mono">No. {prizeId}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Bottom Footer - Sticky at bottom */}
               <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-20">
-                {/* Reduced font size of reminder to smaller text-base/text-sm to match/be smaller than Company Name */}
                 <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
                   <p className="text-white font-bold text-base leading-relaxed tracking-wide">
                     請截圖此畫面<br />
@@ -365,7 +359,6 @@ export default function App() {
             </div>
 
             {/* SCRATCH OVERLAY - FULL SCREEN */}
-            {/* Fixed ensures it stays on screen even if parent flex has issues, causing overlap correctly */}
             <canvas
               ref={canvasRef}
               className={`fixed inset-0 w-full h-full cursor-pointer touch-none z-50 transition-colors duration-300 

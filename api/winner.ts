@@ -62,6 +62,7 @@ export default async function handler(request: Request) {
         const searchCompany = company ? company.trim().toLowerCase() : '';
 
         let matchedPrizes: string[] = [];
+        let matchedIds: string[] = [];
 
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
@@ -109,21 +110,29 @@ export default async function handler(request: Request) {
             }
 
             if (prizeForThisRow) {
+                // Store prize
                 matchedPrizes.push(prizeForThisRow.replace(/['"]/g, '').trim());
+                // Store ID (Index 0)
+                if (row[0]) matchedIds.push(row[0].trim());
             }
         }
 
         let finalPrize = null;
+        let finalId = null;
+
         if (matchedPrizes.length > 0) {
             const uniquePrizes = [...new Set(matchedPrizes)];
-            // SEPARATOR ||| for Multiples
             finalPrize = uniquePrizes.join('|||');
+
+            const uniqueIds = [...new Set(matchedIds)];
+            finalId = uniqueIds.join(', ');
         } else {
             finalPrize = null;
         }
 
         return new Response(JSON.stringify({
             prize: finalPrize,
+            id: finalId,
             timestamp: new Date().toISOString()
         }), {
             status: 200,
