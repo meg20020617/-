@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Building2, Download } from 'lucide-react';
+import { User, Building2, Download, Globe } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const IDLE_LOOP_END = 5.0; // Force Build Trigger 3
-
+const IDLE_LOOP_END = 5.0;
 
 // Initial fallback
 const FALLBACK_COMPANIES = [
@@ -16,6 +15,7 @@ const FALLBACK_COMPANIES = [
 
 const assignPrize = async (name: string, company: string) => {
   try {
+    // Logic remains: Compare Company then Chinese Name
     const res = await fetch(`/api/winner?name=${encodeURIComponent(name)}&company=${encodeURIComponent(company)}`);
     if (res.ok) {
       const data = await res.json();
@@ -33,7 +33,8 @@ export default function App() {
   const [companies, setCompanies] = useState<string[]>(FALLBACK_COMPANIES);
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
-  const [formData, setFormData] = useState({ name: '', company: '' });
+  // Added englishName
+  const [formData, setFormData] = useState({ name: '', englishName: '', company: '' });
   const [loading, setLoading] = useState(false);
   const [prize, setPrize] = useState('');
 
@@ -41,6 +42,7 @@ export default function App() {
   const [isWinningTriggered, setIsWinningTriggered] = useState(false);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const logoUrl = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/publicis_WG.png";
 
   useEffect(() => {
     fetch('/api/companies')
@@ -119,6 +121,7 @@ export default function App() {
     setLoading(true);
 
     try {
+      // Comparison Logic: Still uses Chinese Name + Company
       const assignedPrize = await assignPrize(formData.name.trim(), formData.company);
       if (!assignedPrize || assignedPrize.startsWith("DEBUG:")) {
         setLoading(false);
@@ -127,6 +130,7 @@ export default function App() {
       }
 
       setPrize(assignedPrize);
+      // Submit includes English Name now
       submitSignup(formData);
 
       setTimeout(() => {
@@ -162,7 +166,6 @@ export default function App() {
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
 
-
       // Scale context to ensure drawing operations use logical pixels but render at high DPI
       ctx.scale(dpr, dpr);
 
@@ -180,12 +183,14 @@ export default function App() {
       }
 
       const img = new Image();
-      img.src = "https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png";
+      // Logo on Scratch Card (Cover) remains same? Or should update?
+      // User said "Lion logo all change to this". So I update here too.
+      img.src = logoUrl;
 
       const finishDraw = () => {
         const aspect = img.width / img.height;
         // Logical width
-        let drawWidth = Math.min(window.innerWidth * 0.6, 400);
+        let drawWidth = Math.min(window.innerWidth * 0.5, 300); // Slightly smaller since new logo might be different ratio
         let drawHeight = drawWidth / aspect;
         const x = (window.innerWidth - drawWidth) / 2;
         const y = (window.innerHeight - drawHeight) / 2;
@@ -237,8 +242,6 @@ export default function App() {
         }
       };
 
-
-
       const start = (e: any) => { isDrawing = true; const p = getPos(e); scratch(p.x, p.y); };
       const move = (e: any) => { if (isDrawing) { e.preventDefault(); const p = getPos(e); scratch(p.x, p.y); } };
       const end = () => { isDrawing = false; };
@@ -249,11 +252,6 @@ export default function App() {
       canvas.addEventListener('touchstart', start, { passive: false });
       canvas.addEventListener('touchmove', move, { passive: false });
       canvas.addEventListener('touchend', end);
-      // Actually, standard practice for Scratch Card is to PREVENT resize affecting layout too much.
-      // We will stick to initial size BUT ensure CSS handles visual coverage.
-
-      // Let's just lock the container to fixed and prevent scrolling
-
     }
   }, [view]);
 
@@ -273,14 +271,15 @@ export default function App() {
       <div className={`absolute inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 animate-fade-in">
-          <div className="w-full max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
+        <div className="relative z-20 flex flex-col items-center justify-center h-full animate-fade-in">
+          {/* Reduced Width Container (90%) */}
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
-            <div className="text-center mb-8">
-              <img src="https://fphra4iikbpe4rrw.public.blob.vercel-storage.com/a466e6dbb78746f9f4448c643eb82d47-removebg-preview.png" className="w-full max-w-[280px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
-              <p className="text-yellow-100/80">今日好運攏總來</p>
+            <div className="text-center mb-6">
+              <img src={logoUrl} className="w-full max-w-[200px] mx-auto mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] object-contain" />
+              {/* Removed '今日好運攏總來' */}
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1">
@@ -290,6 +289,16 @@ export default function App() {
                   <input required name="name" type="text" placeholder="例如: 王小明" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.name} onChange={handleInputChange} />
                 </div>
               </div>
+
+              {/* Added English Name Input */}
+              <div className="space-y-1">
+                <label className="text-sm text-yellow-200 ml-1">英文姓名（請填寫Teams名稱）</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
+                  <input required name="englishName" type="text" placeholder="例如: Daaming Wang" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.englishName} onChange={handleInputChange} />
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="text-sm text-yellow-200 ml-1">公司/部門</label>
                 <div className="relative">
@@ -318,9 +327,12 @@ export default function App() {
             <div className="relative w-full h-full flex flex-col z-10">
 
               {/* Top/Middle Content - Auto scrollable if needed */}
-              <div className="flex-1 w-full px-6 flex flex-col items-center justify-center overflow-y-auto">
+              <div className="flex-1 w-[90%] mx-auto flex flex-col items-center justify-center overflow-y-auto">
 
-                <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-8 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0">
+                {/* Added Logo to Result top */}
+                <img src={logoUrl} className="w-[120px] mb-6 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+
+                <h2 className="text-4xl md:text-6xl font-extrabold text-yellow-400 mb-6 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] shrink-0">
                   恭喜中獎
                 </h2>
 
@@ -341,8 +353,9 @@ export default function App() {
 
               {/* Bottom Footer - Sticky at bottom */}
               <div className="w-full p-6 pb-12 shrink-0 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent z-20">
-                <div className="w-full max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
-                  <p className="text-white font-bold text-lg leading-relaxed tracking-wide">
+                {/* Reduced font size of reminder to smaller text-base/text-sm to match/be smaller than Company Name */}
+                <div className="w-[90%] max-w-md bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm">
+                  <p className="text-white font-bold text-base leading-relaxed tracking-wide">
                     請截圖此畫面<br />
                     活動結束後請向<span className="text-yellow-400">福委會</span>出示截圖以領取獎項
                   </p>
