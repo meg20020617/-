@@ -359,7 +359,7 @@ export default function App() {
                 <label className="text-sm text-yellow-200 ml-1">英文姓名（請填寫Teams名稱）</label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-3 w-5 h-5 text-yellow-500" />
-                  <input required name="englishName" type="text" placeholder="例如: Daaming Wang" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.englishName} onChange={handleInputChange} />
+                  <input required name="englishName" type="text" placeholder="例如: LeoXM Wang" className="w-full bg-black/50 border border-yellow-600/50 rounded-lg py-3 pl-10 text-white font-serif" value={formData.englishName} onChange={handleInputChange} />
                 </div>
               </div>
 
@@ -428,7 +428,7 @@ export default function App() {
                 <div className="w-[90%] max-w-md bg-amber-600 border border-yellow-300 rounded-lg p-3 backdrop-blur-sm pointer-events-auto shadow-lg shadow-amber-900/50">
                   <p className="text-white font-bold text-xs md:text-sm leading-relaxed tracking-wide">
                     請截圖此畫面<br />
-                    活動結束後請向<span className="text-yellow-200 underline decoration-yellow-200/50 underline-offset-2">福委會</span>出示截圖以領取獎項
+                    活動結束後請向<span className="text-yellow-200">福委會</span>出示截圖以領取獎項
                   </p>
                 </div>
               </div>
