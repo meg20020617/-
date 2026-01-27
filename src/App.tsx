@@ -242,7 +242,6 @@ export default function App() {
   }, [view]);
 
   return (
-    // REMOVED 'touch-none' from here to fix scroll locking on mobile
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden font-serif text-white overscroll-none">
       <video
         ref={videoRef}
@@ -259,8 +258,9 @@ export default function App() {
       <div className={`fixed inset-0 bg-black/60 transition-opacity duration-1000 z-10 ${view === 'login' ? 'opacity-100' : 'opacity-0'}`} />
 
       {view === 'login' && (
-        <div className="relative z-20 w-full min-h-[100dvh] flex flex-col items-center justify-center p-6 overflow-y-auto animate-fade-in">
-          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group my-auto">
+        // Login View: Use h-[100dvh] (strict height) to ensure strict centering
+        <div className="relative z-20 w-full h-[100dvh] flex flex-col items-center justify-center p-6 animate-fade-in">
+          <div className="w-[90%] max-w-md bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-yellow-500/30 shadow-2xl shadow-yellow-900/20 relative group">
             <a href="/api/export_signups" download className="absolute top-2 right-2 p-2 text-white/5 hover:text-yellow-500 transition-colors">
               <Download className="w-4 h-4" />
             </a>
@@ -307,8 +307,11 @@ export default function App() {
           <div className="fixed inset-0 z-40 flex flex-col bg-black text-center animate-fade-in-up">
             <div className="relative w-full h-full flex flex-col z-10">
 
-              {/* Scrollable Main Content - touch-auto allows scrolling here */}
-              <div className="flex-1 w-full overflow-y-auto touch-auto">
+              {/* Scrollable Main Content */}
+              {/* DISABLE scroll while scratching (isCanvasReady=false) to ensure scratch works */}
+              <div
+                className={`flex-1 w-full ${isCanvasReady ? 'overflow-y-auto touch-pan-y' : 'overflow-hidden touch-none'}`}
+              >
                 {/* Inner Container: Padding Top to push content down, Padding Bottom to clear footer */}
                 <div className="w-[90%] max-w-md mx-auto min-h-full flex flex-col items-center pt-24 pb-48">
 
