@@ -112,10 +112,12 @@ export default async function handler(request: Request) {
                 }
             }
 
-            // Also if prize says "禮券" but we have specific voucher info, override or append?
-            // Usually pItem is the main gift.
-
-            if (pItem && vItem) {
+            // Logic Refinement:
+            // If pItem is just "禮券" (generic placeholder) and we have specific voucher info, 
+            // ONLY show the voucher info.
+            if (pItem === '禮券' && vItem) {
+                finalPrizeStr = vItem;
+            } else if (pItem && vItem) {
                 finalPrizeStr = `${pItem}|||+${vItem}`;
             } else if (pItem) {
                 finalPrizeStr = pItem;
