@@ -2,7 +2,7 @@ export const config = {
     runtime: 'edge',
 };
 
-const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8EFinal_%E7%8D%8E%E9%A0%85%E6%B8%85%E5%96%AE-20260128.csv";
 
 // Helper: Parse a single CSV line handling quotes
 function parseCSVLine(text: string) {
@@ -48,10 +48,10 @@ export default async function handler(request: Request) {
         // Skip Header (Row 0)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
-            // CSV Format: Index 9 is Company
-            if (row.length < 10) continue;
+            // Structure: 0:ID, 1:Count, 2:Prize, 3:Voucher, 4:Name, 5:Company
+            if (row.length < 6) continue;
 
-            const comp = row[9];
+            const comp = row[5];
 
             if (comp && comp !== '無' && comp.length > 1) {
                 const cleanComp = comp.replace(/[\u4e00-\u9fa5]/g, '').trim();

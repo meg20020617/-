@@ -2,7 +2,7 @@ export const config = {
     runtime: 'edge',
 };
 
-const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8EFinal_%E7%8D%8E%E9%A0%85%E6%B8%85%E5%96%AE-20260128.csv";
 
 // Helper: Parse a single CSV line handling quotes
 function parseCSVLine(text: string) {
@@ -68,18 +68,15 @@ export default async function handler(request: Request) {
         // Skip header (i=1)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
-            if (row.length < 10) continue;
+            if (row.length < 6) continue;
 
-            // Index 8: Name, Index 9: Company
+            // Structure: 0:ID, 1:Count, 2:Prize, 3:Voucher, 4:Name, 5:Company
             const rowId = row[0];
-            const rowPrize = row[2];
+            const pItem = row[2] ? row[2].trim() : "";
+            const vItem = row[3] ? row[3].trim() : "";
 
-            // Voucher logic
-            const vBrand = row[6]; // e.g., 家樂福
-            const vAmt = row[7];   // e.g., 1,500
-
-            const rowName = row[8];
-            const rowCompany = row[9];
+            const rowName = row[4];
+            const rowCompany = row[5];
 
             if (!rowName) continue;
 
@@ -98,24 +95,11 @@ export default async function handler(request: Request) {
 
             // 3. Prize Construction
             let finalPrizeStr = "";
-            let pItem = rowPrize ? rowPrize.trim() : "";
-            let vItem = "";
-
-            if (vBrand && vBrand !== '無' && vBrand.trim() !== '') {
-                // If amount exists and is not '-'
-                if (vAmt && vAmt.trim() !== '-' && vAmt.trim() !== '') {
-                    const amtClean = vAmt.replace(/['"]/g, '').trim();
-                    vItem = `${vBrand} ${amtClean}元 禮券`;
-                } else {
-                    // Just brand?
-                    vItem = `${vBrand} 禮券`;
-                }
-            }
 
             // Logic Refinement:
             // If pItem is just "禮券" (generic placeholder) and we have specific voucher info, 
             // ONLY show the voucher info.
-            if (pItem === '禮券' && vItem) {
+            if ((pItem === '禮券' || pItem === '') && vItem) {
                 finalPrizeStr = vItem;
             } else if (pItem && vItem) {
                 finalPrizeStr = `${pItem}|||+${vItem}`;
