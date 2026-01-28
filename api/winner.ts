@@ -2,7 +2,7 @@ export const config = {
     runtime: 'edge',
 };
 
-const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8EFinal_%E7%8D%8E%E9%A0%85%E6%B8%85%E5%96%AE-20260128.csv";
 
 // Helper: Parse a single CSV line handling quotes
 function parseCSVLine(text: string) {
@@ -52,7 +52,8 @@ export default async function handler(request: Request) {
             const arrayBuffer = await response.arrayBuffer();
             const decoder = new TextDecoder('utf-8');
             const text = decoder.decode(arrayBuffer);
-            const cleanText = text.replace(/^\uFEFF/, '');
+            // Replace BOM and normalize newlines
+            const cleanText = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
             lines = cleanText.split('\n').filter(l => l.trim().length > 0);
         } catch (decodeErr: any) {
             throw new Error("Decoding Failed: " + decodeErr.message);
@@ -64,17 +65,23 @@ export default async function handler(request: Request) {
         let matchedPrizes: string[] = [];
         let matchedIds: string[] = [];
 
+        // Skip header (i=1)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
-            if (row.length < 9) continue;
+            // Format: ID, Count, PrizeItem, VoucherItem, Name, Company
+            if (row.length < 5) continue;
 
-            const rowName = row[8] || "";
-            const rowCompany = row[9] || "";
+            // Indices based on "項次, 獎項項目 ,獎品項,禮券項,中文姓名,公司/部門"
+            const rowId = row[0];
+            const rowPrizeItem = row[2];
+            const rowVoucherItem = row[3];
+            const rowName = row[4];
+            const rowCompany = row[5];
 
             if (!rowName) continue;
 
             // 1. Company Match (Priority)
-            if (searchCompany) {
+            if (searchCompany && rowCompany) {
                 const rowCompClean = rowCompany.toLowerCase().replace(/\s/g, '');
                 const searchCompClean = searchCompany.replace(/\s/g, '');
 
@@ -86,34 +93,22 @@ export default async function handler(request: Request) {
             // 2. Name Match
             if (rowName !== searchName) continue;
 
-            // 3. Prize Construction (Hybrid Logic)
-            let rawPrize = row[2] || "";
-            let extraVoucher = "";
+            // 3. Prize Construction
+            let finalPrizeStr = "";
+            const pItem = rowPrizeItem ? rowPrizeItem.trim() : "";
+            const vItem = rowVoucherItem ? rowVoucherItem.trim() : "";
 
-            const brand = row[6];
-            const amount = row[7];
-
-            if (brand && brand !== '無' && brand !== '-' && brand.trim().length > 0) {
-                const amtStr = (amount && amount !== '-') ? amount.replace(/['"]/g, '').trim() + '元' : '';
-                extraVoucher = `${brand} ${amtStr} 禮券`.trim();
+            if (pItem && vItem) {
+                finalPrizeStr = `${pItem}|||+${vItem}`;
+            } else if (pItem) {
+                finalPrizeStr = pItem;
+            } else if (vItem) {
+                finalPrizeStr = vItem;
             }
 
-            let prizeForThisRow = rawPrize;
-
-            if (rawPrize === '禮券' || rawPrize.includes('禮券')) {
-                if (extraVoucher) prizeForThisRow = extraVoucher;
-            } else {
-                if (extraVoucher) {
-                    // SEPARATOR ||| 
-                    prizeForThisRow = `${rawPrize}|||+${extraVoucher}`;
-                }
-            }
-
-            if (prizeForThisRow) {
-                // Store prize
-                matchedPrizes.push(prizeForThisRow.replace(/['"]/g, '').trim());
-                // Store ID (Index 0)
-                if (row[0]) matchedIds.push(row[0].trim());
+            if (finalPrizeStr) {
+                matchedPrizes.push(finalPrizeStr);
+                if (rowId) matchedIds.push(rowId.trim());
             }
         }
 
@@ -121,9 +116,11 @@ export default async function handler(request: Request) {
         let finalId = null;
 
         if (matchedPrizes.length > 0) {
+            // Dedup prizes
             const uniquePrizes = [...new Set(matchedPrizes)];
             finalPrize = uniquePrizes.join('|||');
 
+            // Dedup IDs
             const uniqueIds = [...new Set(matchedIds)];
             finalId = uniqueIds.join(', ');
         } else {

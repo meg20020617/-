@@ -271,8 +271,9 @@ export default function App() {
         ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
+        // Reduced letter spacing significantly to prevent overflow on mobile
         if ('letterSpacing' in ctx) {
-          (ctx as any).letterSpacing = "20px";
+          (ctx as any).letterSpacing = "4px";
         }
         ctx.fillText("請刮出你的中獎結果", window.innerWidth / 2, y + drawHeight + (fontSize * 2));
         ctx.globalCompositeOperation = 'destination-out';
