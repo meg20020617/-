@@ -5,11 +5,11 @@ import confetti from 'canvas-confetti';
 const IDLE_LOOP_END = 5.0;
 
 // Priority List for Sorting (User Ordered)
-// Handling strict order + potential typos mappings
+// Added SSC, Removed Publicis/Resource variants if any
 const COMPANY_PRIORITY = [
   "LEO", "Starcom", "Zenith", "Performics", "Digitas",
   "MSL", "Spark", "Prodigious", "Saatchi & Saatchi",
-  "Collective", "PMX", "Growth Intelligence", "Core", "Management"
+  "Collective", "PMX", "Growth Intelligence", "Core", "Management", "SSC"
 ];
 
 // Helper to normalize and sort
@@ -42,7 +42,7 @@ const sortCompanies = (list: string[]) => {
 const FALLBACK_COMPANIES = sortCompanies([
   "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
   "Performics", "MSL", "PMX", "Saatchi & Saatchi",
-  "ReSources", "Publicis", "Human Resource", "Finance",
+  "SSC", "Human Resource", "Finance",
   "Administration", "Management", "Growth Intelligence",
   "Collective", "Commercial", "Spark", "Core"
 ]);
@@ -268,7 +268,8 @@ export default function App() {
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
         const fontSize = Math.min(window.innerWidth * 0.08, 42);
-        ctx.font = `bold ${fontSize}px "Noto Serif TC", serif`;
+        // FONT FIX: Use safe system CJK fonts + Serif fallback
+        ctx.font = `bold ${fontSize}px "PingFang TC", "Microsoft JhengHei", "Heiti TC", "Noto Serif TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
         // Reduced letter spacing significantly to prevent overflow on mobile

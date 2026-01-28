@@ -2,7 +2,7 @@ export const config = {
     runtime: 'edge',
 };
 
-const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8EFinal_%E7%8D%8E%E9%A0%85%E6%B8%85%E5%96%AE-20260128.csv";
 
 // Helper: Parse a single CSV line handling quotes
 function parseCSVLine(text: string) {
@@ -21,7 +21,6 @@ function parseCSVLine(text: string) {
             entry.push(char);
         }
     }
-    // Last entry
     res.push(entry.join('').trim());
     return res;
 }
@@ -37,11 +36,10 @@ export default async function handler(request: Request) {
             throw new Error('Failed to fetch prize list');
         }
 
-        // FORCE UTF-8
         const arrayBuffer = await response.arrayBuffer();
         const decoder = new TextDecoder('utf-8');
         const text = decoder.decode(arrayBuffer);
-        const cleanText = text.replace(/^\uFEFF/, '');
+        const cleanText = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
 
         const lines = cleanText.split('\n').filter(l => l.trim().length > 0);
 
@@ -50,20 +48,26 @@ export default async function handler(request: Request) {
         // Skip Header (Row 0)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
-            // Company is Index 9 based on analysis
-            const comp = row[9];
+            // New CSV: 0:ID, 1:Count, 2:Prize, 3:Voucher, 4:Name, 5:Company
+            const comp = row[5];
 
             if (comp && comp !== '無' && comp.length > 1) {
-                // Fix for dirty data (e.g., "張簡建呈Performics")
-                // Remove Chinese characters and leading spaces
                 const cleanComp = comp.replace(/[\u4e00-\u9fa5]/g, '').trim();
 
-                // Filter out obviously non-company strings if needed
+                // Exclude Publicis and ReSources as requested (if they appear in CSV)
                 if (cleanComp && cleanComp !== '-' && cleanComp.length > 1) {
+                    if (cleanComp.toLowerCase() === 'publicis' || cleanComp.toLowerCase().includes('resource')) {
+                        continue;
+                    }
                     companies.add(cleanComp);
                 }
             }
         }
+
+        // Ensure SSC is present if not in CSV? User said "Add SSC".
+        // If it's in CSV, it's added. If not, fallback adds it.
+        // Let's assume the CSV drives the main list, but user wants it available.
+        companies.add("SSC");
 
         const sorted = Array.from(companies).sort();
 
@@ -81,9 +85,9 @@ export default async function handler(request: Request) {
             companies: [
                 "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
                 "Performics", "MSL", "PMX", "Saatchi & Saatchi",
-                "ReSources", "Publicis", "Human Resource", "Finance",
+                "SSC", "Human Resource", "Finance", // Replaces ReSources -> SSC
                 "Administration", "Management", "Growth Intelligence",
-                "Collective", "Commercial"
+                "Collective", "Commercial", "Spark", "Core"
             ].sort()
         }), {
             status: 200,
