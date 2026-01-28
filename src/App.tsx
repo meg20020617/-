@@ -9,7 +9,7 @@ const IDLE_LOOP_END = 5.0;
 const COMPANY_PRIORITY = [
   "LEO", "Starcom", "Zenith", "Performics", "Digitas",
   "MSL", "Spark", "Prodigious", "Saatchi & Saatchi",
-  "Collective", "PMX", "Growth Intelligence", "Core", "Management", "SSC"
+  "Collective", "PMX", "Growth Intelligence", "Core", "Management"
 ];
 
 // Helper to normalize and sort
@@ -268,8 +268,8 @@ export default function App() {
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
         const fontSize = Math.min(window.innerWidth * 0.08, 42);
-        // FONT FIX: Use safe system CJK fonts + Serif fallback
-        ctx.font = `bold ${fontSize}px "PingFang TC", "Microsoft JhengHei", "Heiti TC", "Noto Serif TC", serif`;
+        // Reverted to Serif to match site style
+        ctx.font = `bold ${fontSize}px "Noto Serif TC", "Songti TC", serif`;
         ctx.fillStyle = '#fcd34d';
         ctx.textAlign = 'center';
         // Reduced letter spacing significantly to prevent overflow on mobile
