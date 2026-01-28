@@ -409,11 +409,13 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Huge Prize Text */}
-                <div className="w-full shrink-0">
-                  <div className="text-4xl md:text-5xl font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-3">
+                <div className="w-full shrink-0 px-4">
+                  <div className={`font-black text-white w-full leading-snug drop-shadow-sm flex flex-col items-center gap-3 transition-all duration-300
+                      ${prize.length > 20 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl'} 
+                      ${prize.length > 50 ? 'text-xl md:text-2xl' : ''}
+                  `}>
                     {prize.split('|||').map((line, idx) => (
-                      <span key={idx} className="block max-w-full break-words px-2">{line}</span>
+                      <span key={idx} className="block w-full max-w-2xl break-words whitespace-pre-wrap">{line}</span>
                     ))}
                   </div>
                 </div>
