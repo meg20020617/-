@@ -2,7 +2,7 @@ export const config = {
     runtime: 'edge',
 };
 
-const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E6%99%AE%E7%8D%8EFinal_%E7%8D%8E%E9%A0%85%E6%B8%85%E5%96%AE-20260128%20%281%29.csv";
+const DATA_URL = "https://h3iruobmqaxiuwr1.public.blob.vercel-storage.com/%E4%B8%AD%E7%8D%8E%E5%90%8D%E5%96%AE.csv";
 
 // Helper: Parse a single CSV line handling quotes
 function parseCSVLine(text: string) {
@@ -48,13 +48,15 @@ export default async function handler(request: Request) {
         // Skip Header (Row 0)
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
-            // New CSV: 0:ID, 1:Count, 2:Prize, 3:Voucher, 4:Name, 5:Company
-            const comp = row[5];
+            // CSV Format: Index 9 is Company
+            if (row.length < 10) continue;
+
+            const comp = row[9];
 
             if (comp && comp !== '無' && comp.length > 1) {
                 const cleanComp = comp.replace(/[\u4e00-\u9fa5]/g, '').trim();
 
-                // Exclude Publicis and ReSources as requested (if they appear in CSV)
+                // Exclude Publicis and ReSources as requested
                 if (cleanComp && cleanComp !== '-' && cleanComp.length > 1) {
                     if (cleanComp.toLowerCase() === 'publicis' || cleanComp.toLowerCase().includes('resource')) {
                         continue;
@@ -64,10 +66,10 @@ export default async function handler(request: Request) {
             }
         }
 
-        // Ensure SSC is present if not in CSV? User said "Add SSC".
-        // If it's in CSV, it's added. If not, fallback adds it.
-        // Let's assume the CSV drives the main list, but user wants it available.
-        companies.add("SSC");
+        // Ensure SSC is valid
+        if (!companies.has("SSC")) {
+            companies.add("SSC");
+        }
 
         const sorted = Array.from(companies).sort();
 
@@ -85,7 +87,7 @@ export default async function handler(request: Request) {
             companies: [
                 "LEO", "Starcom", "Zenith", "Prodigious", "Digitas",
                 "Performics", "MSL", "PMX", "Saatchi & Saatchi",
-                "SSC", "Human Resource", "Finance", // Replaces ReSources -> SSC
+                "SSC", "Human Resource", "Finance",
                 "Administration", "Management", "Growth Intelligence",
                 "Collective", "Commercial", "Spark", "Core"
             ].sort()
